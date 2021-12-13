@@ -1,5 +1,6 @@
 package me.liuli.mmd.utils
 
+import java.io.ByteArrayOutputStream
 import java.nio.ByteBuffer
 import java.nio.charset.Charset
 
@@ -91,5 +92,63 @@ fun sizeof(type: String): Int {
         "float" -> 4
         "double" -> 8
         else -> throw IllegalArgumentException("unknown type: $type")
+    }
+}
+
+/**
+ * write int to [ByteArrayOutputStream]
+ */
+fun ByteArrayOutputStream.writeInt(value: Int) {
+    this.write(ByteBuffer.allocate(sizeof("int")).putInt(value).array().reversedArray())
+}
+
+/**
+ * write long to [ByteArrayOutputStream]
+ */
+fun ByteArrayOutputStream.writeLong(value: Long) {
+    this.write(ByteBuffer.allocate(sizeof("long")).putLong(value).array().reversedArray())
+}
+
+/**
+ * write short to [ByteArrayOutputStream]
+ */
+fun ByteArrayOutputStream.writeShort(value: Short) {
+    this.write(ByteBuffer.allocate(sizeof("short")).putShort(value).array().reversedArray())
+}
+
+/**
+ * write float to [ByteArrayOutputStream]
+ */
+fun ByteArrayOutputStream.writeFloat(value: Float) {
+    this.write(ByteBuffer.allocate(sizeof("float")).putFloat(value).array().reversedArray())
+}
+
+/**
+ * write double to [ByteArrayOutputStream]
+ */
+fun ByteArrayOutputStream.writeDouble(value: Double) {
+    this.write(ByteBuffer.allocate(sizeof("double")).putDouble(value).array().reversedArray())
+}
+
+/**
+ * write bool to [ByteArrayOutputStream]
+ */
+fun ByteArrayOutputStream.writeBool(value: Boolean) {
+    this.write(byteArrayOf(if (value) 1.toByte() else 0.toByte()))
+}
+
+/**
+ * write bytes to [ByteArrayOutputStream]
+ */
+fun ByteArrayOutputStream.writeLimited(value: ByteArray, size: Int) {
+    if(value.size < size) {
+        this.write(value)
+        for (i in 0 until size - value.size) {
+            this.write(0x00)
+        }
+    } else if (value.size > size) {
+        this.write(value, 0, size)
+    } else {
+        this.write(value)
     }
 }

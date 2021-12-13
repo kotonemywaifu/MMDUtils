@@ -2,6 +2,7 @@ package me.liuli.mmd.file.parser
 
 import me.liuli.mmd.file.VmdFile
 import me.liuli.mmd.utils.*
+import java.io.ByteArrayOutputStream
 import java.io.IOException
 
 object VmdParser : Parser<VmdFile> {
@@ -58,10 +59,6 @@ object VmdParser : Parser<VmdFile> {
         }
 
         return file
-    }
-
-    override fun write(data: VmdFile): ByteArray {
-        TODO("Not yet implemented")
     }
 
     private fun readBoneFrame(iterator: ByteIterator): VmdFile.BoneFrame {
@@ -140,5 +137,103 @@ object VmdParser : Parser<VmdFile> {
         }
 
         return ikFrame
+    }
+
+    override fun write(data: VmdFile): ByteArray {
+        val bos = ByteArrayOutputStream()
+
+        // header
+        bos.writeLimited("Vocaloid Motion Data 0002".toByteArray(),  30)
+
+        // model name
+        bos.writeLimited(data.name.toByteArray(Charsets.UTF_8), 20)
+
+        // bone frames
+        bos.writeInt(data.boneFrames.size)
+        for (boneFrame in data.boneFrames) {
+            writeBoneFrame(bos, boneFrame)
+        }
+
+        // face frames
+        bos.writeInt(data.faceFrames.size)
+        for (faceFrame in data.faceFrames) {
+            writeFaceFrame(bos, faceFrame)
+        }
+
+        // camera frames
+        bos.writeInt(data.cameraFrames.size)
+        for (cameraFrame in data.cameraFrames) {
+            writeCameraFrame(bos, cameraFrame)
+        }
+
+        // light frames
+        bos.writeInt(data.lightFrames.size)
+        for (lightFrame in data.lightFrames) {
+            writeLightFrame(bos, lightFrame)
+        }
+
+        // self shadow datas
+        bos.writeInt(0)
+
+        // ik frames
+        bos.writeInt(data.ikFrames.size)
+        for (ikFrame in data.ikFrames) {
+            writeIkFrame(bos, ikFrame)
+        }
+
+        return bos.toByteArray()
+    }
+
+    private fun writeBoneFrame(bos: ByteArrayOutputStream, boneFrame: VmdFile.BoneFrame) {
+        bos.writeLimited(boneFrame.name.toByteArray(Charsets.UTF_8), 15)
+        bos.writeInt(boneFrame.frame)
+        bos.writeFloat(boneFrame.position[0])
+        bos.writeFloat(boneFrame.position[1])
+        bos.writeFloat(boneFrame.position[2])
+        bos.writeFloat(boneFrame.orientation[0])
+        bos.writeFloat(boneFrame.orientation[1])
+        bos.writeFloat(boneFrame.orientation[2])
+        bos.writeFloat(boneFrame.orientation[3])
+        bos.write(boneFrame.interpolation)
+    }
+
+    private fun writeFaceFrame(bos: ByteArrayOutputStream, faceFrame: VmdFile.FaceFrame) {
+        bos.writeLimited(faceFrame.name.toByteArray(Charsets.UTF_8), 15)
+        bos.writeInt(faceFrame.frame)
+        bos.writeFloat(faceFrame.weight)
+    }
+
+    private fun writeCameraFrame(bos: ByteArrayOutputStream, cameraFrame: VmdFile.CameraFrame) {
+        bos.writeInt(cameraFrame.frame)
+        bos.writeFloat(cameraFrame.distance)
+        bos.writeFloat(cameraFrame.position[0])
+        bos.writeFloat(cameraFrame.position[1])
+        bos.writeFloat(cameraFrame.position[2])
+        bos.writeFloat(cameraFrame.orientation[0])
+        bos.writeFloat(cameraFrame.orientation[1])
+        bos.writeFloat(cameraFrame.orientation[2])
+        bos.write(cameraFrame.interpolation)
+        bos.writeFloat(cameraFrame.angle)
+        bos.write(cameraFrame.unknown)
+    }
+
+    private fun writeLightFrame(bos: ByteArrayOutputStream, lightFrame: VmdFile.LightFrame) {
+        bos.writeInt(lightFrame.frame)
+        bos.writeFloat(lightFrame.color[0])
+        bos.writeFloat(lightFrame.color[1])
+        bos.writeFloat(lightFrame.color[2])
+        bos.writeFloat(lightFrame.position[0])
+        bos.writeFloat(lightFrame.position[1])
+        bos.writeFloat(lightFrame.position[2])
+    }
+
+    private fun writeIkFrame(bos: ByteArrayOutputStream, ikFrame: VmdFile.IkFrame) {
+        bos.writeInt(ikFrame.frame)
+        bos.writeBool(ikFrame.display)
+        bos.writeInt(ikFrame.iks.size)
+        for (ik in ikFrame.iks) {
+            bos.writeLimited(ik.name.toByteArray(Charsets.UTF_8), 20)
+            bos.writeBool(ik.enable)
+        }
     }
 }
