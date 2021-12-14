@@ -146,7 +146,7 @@ object VmdParser : Parser<VmdFile> {
         bos.writeLimited("Vocaloid Motion Data 0002".toByteArray(),  30)
 
         // model name
-        bos.writeLimited(data.name.toByteArray(Charsets.UTF_8), 20)
+        bos.writeLimited(data.name.toStandardByteArray(), 20)
 
         // bone frames
         bos.writeInt(data.boneFrames.size)
@@ -185,7 +185,7 @@ object VmdParser : Parser<VmdFile> {
     }
 
     private fun writeBoneFrame(bos: ByteArrayOutputStream, boneFrame: VmdFile.BoneFrame) {
-        bos.writeLimited(boneFrame.name.toByteArray(Charsets.UTF_8), 15)
+        bos.writeLimited(boneFrame.name.toStandardByteArray(), 15)
         bos.writeInt(boneFrame.frame)
         bos.writeFloat(boneFrame.position[0])
         bos.writeFloat(boneFrame.position[1])
@@ -198,7 +198,7 @@ object VmdParser : Parser<VmdFile> {
     }
 
     private fun writeFaceFrame(bos: ByteArrayOutputStream, faceFrame: VmdFile.FaceFrame) {
-        bos.writeLimited(faceFrame.name.toByteArray(Charsets.UTF_8), 15)
+        bos.writeLimited(faceFrame.name.toStandardByteArray(), 15)
         bos.writeInt(faceFrame.frame)
         bos.writeFloat(faceFrame.weight)
     }
@@ -232,7 +232,7 @@ object VmdParser : Parser<VmdFile> {
         bos.writeBool(ikFrame.display)
         bos.writeInt(ikFrame.iks.size)
         for (ik in ikFrame.iks) {
-            bos.writeLimited(ik.name.toByteArray(Charsets.UTF_8), 20)
+            bos.writeLimited(ik.name.toStandardByteArray(), 20)
             bos.writeBool(ik.enable)
         }
     }

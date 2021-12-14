@@ -69,8 +69,16 @@ fun ByteIterator.readDouble(): Double {
 /**
  * read string from [ByteIterator]
  */
-fun ByteIterator.readString(length: Int, charset: Charset = Charsets.UTF_8): String {
-    return this.read(length).toString(charset)
+fun ByteIterator.readString(length: Int, noZero: Boolean = true): String {
+    val sb = StringBuilder()
+    this.read(length).forEach {
+        it.toInt().also { charcode ->
+            if(charcode != 0 || !noZero) {
+                sb.append(charcode.toChar())
+            }
+        }
+    }
+    return sb.toString()
 }
 
 /**
@@ -151,4 +159,15 @@ fun ByteArrayOutputStream.writeLimited(value: ByteArray, size: Int) {
     } else {
         this.write(value)
     }
+}
+
+/**
+ * write string to [ByteArray] without any encoding
+ */
+fun String.toStandardByteArray(): ByteArray {
+    val bos = ByteArrayOutputStream()
+    for (c in this) {
+        bos.write(byteArrayOf(c.code.toByte()))
+    }
+    return bos.toByteArray()
 }
