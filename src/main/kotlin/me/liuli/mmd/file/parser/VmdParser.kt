@@ -6,14 +6,13 @@ import java.io.ByteArrayOutputStream
 import java.io.IOException
 
 object VmdParser : Parser<VmdFile> {
-    override fun read(input: ByteArray): VmdFile {
-        val file = VmdFile()
+    override fun readToInstance(file: VmdFile, input: ByteArray) {
         val iterator = input.iterator()
 
         // magic (文件头)
-        val magic = iterator.read(30)
-        if(!magic.toString(Charsets.UTF_8).startsWith("Vocaloid Motion Data")) {
-            throw IOException("Invalid VMD file header")
+        val magic = iterator.readString(30)
+        if(!magic.startsWith("Vocaloid Motion Data")) {
+            throw IOException("Invalid VMD file header: $magic")
         }
 
         // name of the motion data
@@ -57,8 +56,6 @@ object VmdParser : Parser<VmdFile> {
         if (iterator.hasNext()) {
             throw IOException("VMD file has unknown data")
         }
-
-        return file
     }
 
     private fun readBoneFrame(iterator: ByteIterator): VmdFile.BoneFrame {
@@ -235,5 +232,9 @@ object VmdParser : Parser<VmdFile> {
             bos.writeLimited(ik.name.toStandardByteArray(), 20)
             bos.writeBool(ik.enable)
         }
+    }
+
+    override fun read(input: ByteArray): VmdFile {
+        return VmdFile().also { readToInstance(it, input) }
     }
 }

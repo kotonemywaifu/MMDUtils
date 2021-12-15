@@ -8,3 +8,7 @@ MMDUtils is a library for read/write mmd related file in java
 [ ] Render model in LWJGL  
 [ ] Process physics bone for model  
 [ ] Display VMD animation
+
+# PMD Format Support
+We currently don't want to add support for PMD format, because [PMX file is better](https://learnmmd.com/bonus-pages/convert-pmd-models-pmx/) ~~and we are lazy~~.  
+And you can [convert PMD to PMX](https://learnmmd.com/http:/learnmmd.com/convert-pmd-models-to-pmx-models/) to make it able to read.

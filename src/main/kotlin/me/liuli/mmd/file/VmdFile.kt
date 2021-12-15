@@ -1,6 +1,11 @@
 package me.liuli.mmd.file
 
-class VmdFile {
+import me.liuli.mmd.file.parser.VmdParser
+
+/**
+ * VMD(Vocaloid Motion Data) is a motion data file format used in the program [MikuMikuDance](https://mikumikudance.jp/).
+ */
+class VmdFile : InteractiveFile() {
     var name = "Empty File"
     val boneFrames = mutableListOf<BoneFrame>()
     val faceFrames = mutableListOf<FaceFrame>()
@@ -68,5 +73,13 @@ class VmdFile {
             // enable
             var enable = false
         }
+    }
+
+    override fun read(byteArray: ByteArray) {
+        VmdParser.readToInstance(this, byteArray)
+    }
+
+    override fun write(): ByteArray {
+        return VmdParser.write(this)
     }
 }

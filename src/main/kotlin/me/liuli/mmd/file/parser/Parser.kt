@@ -1,6 +1,8 @@
 package me.liuli.mmd.file.parser
 
-interface Parser<T> {
+import me.liuli.mmd.file.InteractiveFile
+
+interface Parser<T : InteractiveFile> {
 
     /**
      * 从[ByteArray]读取文件
@@ -9,6 +11,11 @@ interface Parser<T> {
      * @return 读取完成的数据
      */
     fun read(input: ByteArray): T
+
+    /**
+     * read data to [T]
+     */
+    fun readToInstance(instance: T, input: ByteArray)
 
     /**
      * 将数据写入[ByteArray]
