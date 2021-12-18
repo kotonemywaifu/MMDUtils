@@ -1,9 +1,4 @@
 .gradle/
 .idea/
 build/
-test/
-*.iml
-*.ipr
-*.iws
-*.log
-*.tmp
+test_files/
