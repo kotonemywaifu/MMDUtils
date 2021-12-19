@@ -2,7 +2,6 @@ package me.liuli.mmd.utils
 
 import java.io.ByteArrayOutputStream
 import java.nio.ByteBuffer
-import java.nio.charset.Charset
 
 /**
  * read a length of bytes from [ByteIterator]
@@ -101,6 +100,13 @@ fun sizeof(type: String): Int {
         "double" -> 8
         else -> throw IllegalArgumentException("unknown type: $type")
     }
+}
+
+/**
+ * write single byte to [ByteArrayOutputStream]
+ */
+fun ByteArrayOutputStream.write(byte: Byte) {
+    this.write(byteArrayOf(byte))
 }
 
 /**

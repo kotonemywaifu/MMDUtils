@@ -140,7 +140,7 @@ object VmdParser : Parser<VmdFile> {
         val bos = ByteArrayOutputStream()
 
         // header
-        bos.writeLimited("Vocaloid Motion Data 0002".toByteArray(),  30)
+        bos.writeLimited("Vocaloid Motion Data 0002".toStandardByteArray(),  30)
 
         // model name
         bos.writeLimited(data.name.toStandardByteArray(), 20)

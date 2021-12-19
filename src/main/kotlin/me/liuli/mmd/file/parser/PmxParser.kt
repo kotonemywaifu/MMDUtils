@@ -22,7 +22,8 @@ object PmxParser : Parser<PmxFile> {
         }
 
         // read settings, i think settings only need to be used when parsing, so we don't need to store them
-        val setting = readSettings(iterator)
+        val setting = readSettings(iterator, file)
+        file.uv = setting.uv
 
         // read basic info
         file.name = readString(iterator, setting.encoding)
@@ -431,8 +432,8 @@ object PmxParser : Parser<PmxFile> {
         for(i in 0 until setting.uv) {
             vertex.uva[i][0] = iterator.readFloat()
             vertex.uva[i][1] = iterator.readFloat()
-            vertex.uva[i][0] = iterator.readFloat()
-            vertex.uva[i][1] = iterator.readFloat()
+            vertex.uva[i][2] = iterator.readFloat()
+            vertex.uva[i][3] = iterator.readFloat()
         }
 
         when(val skinningCode = iterator.next().toInt()) {
@@ -496,7 +497,7 @@ object PmxParser : Parser<PmxFile> {
         return vertex
     }
 
-    private fun readSettings(iterator: ByteIterator): Setting {
+    private fun readSettings(iterator: ByteIterator, file: PmxFile): Setting {
         val setting = Setting()
         val sections = iterator.next().toInt() - 8
 
@@ -522,8 +523,414 @@ object PmxParser : Parser<PmxFile> {
         return setting
     }
 
-    override fun write(data: PmxFile): ByteArray {
-        TODO("Not yet implemented")
+    override fun write(file: PmxFile): ByteArray {
+        val bos = ByteArrayOutputStream()
+
+        // header
+        bos.writeLimited("PMX ".toStandardByteArray(), 4)
+        bos.writeFloat(if(file.softBodies.isEmpty()) { 2.0f } else { 2.1f })
+
+        // settings
+        bos.write(0x08.toByte())
+        bos.write(0x00.toByte()) // always use UTF-16LE
+        bos.write(file.uv.toByte())
+        bos.write(0x04.toByte()) // vertex index size
+        bos.write(0x04.toByte()) // texture index size
+        bos.write(0x04.toByte()) // material index size
+        bos.write(0x04.toByte()) // bone index size
+        bos.write(0x04.toByte()) // morph index size
+        bos.write(0x04.toByte()) // rigid body index size
+
+        // info
+        writeString(bos, file.name, true)
+        writeString(bos, file.englishName, true)
+        writeString(bos, file.comment, true)
+        writeString(bos, file.englishComment, true)
+
+        // vertices
+        bos.writeInt(file.vertices.size)
+        file.vertices.forEach { writeVertex(bos, it, file) }
+
+        // indices
+        bos.writeInt(file.indices.size)
+        file.indices.forEach { bos.writeInt(it) }
+
+        // textures
+        bos.writeInt(file.textures.size)
+        file.textures.forEach { writeString(bos, it, true) }
+
+        // materials
+        bos.writeInt(file.materials.size)
+        file.materials.forEach { writeMaterial(bos, it, file) }
+
+        // bones
+        bos.writeInt(file.bones.size)
+        file.bones.forEach { writeBone(bos, it, file) }
+
+        // morphs
+        bos.writeInt(file.morphs.size)
+        file.morphs.forEach { writeMorph(bos, it, file) }
+
+        // display frames
+        bos.writeInt(file.displayFrames.size)
+        file.displayFrames.forEach { writeDisplayFrame(bos, it, file) }
+
+        // rigid bodies
+        bos.writeInt(file.rigidBodies.size)
+        file.rigidBodies.forEach { writeRigidBody(bos, it, file) }
+
+        // joints
+        bos.writeInt(file.joints.size)
+        file.joints.forEach { writeJoint(bos, it, file) }
+
+        // soft bodies
+        if(file.softBodies.isNotEmpty()) {
+            bos.writeInt(file.softBodies.size)
+            file.softBodies.forEach { writeSoftBody(bos, it, file) }
+        }
+
+        return bos.toByteArray()
+    }
+
+    private fun writeSoftBody(bos: ByteArrayOutputStream, softBody: PmxFile.SoftBody, file: PmxFile) {
+        writeString(bos, softBody.name, true)
+        writeString(bos, softBody.englishName, true)
+        bos.write(softBody.type.code)
+        bos.writeInt(softBody.materialIndex)
+        bos.write(softBody.group.toByte())
+        bos.writeShort(softBody.collisionGroup.toShort())
+        bos.write(softBody.mask.code)
+        bos.writeInt(softBody.blinkLength)
+        bos.writeInt(softBody.numClusters)
+        bos.writeFloat(softBody.totalMass)
+        bos.writeFloat(softBody.collisionMargin)
+        bos.writeInt(softBody.aeroModel)
+        bos.writeFloat(softBody.vcf)
+        bos.writeFloat(softBody.dp)
+        bos.writeFloat(softBody.dg)
+        bos.writeFloat(softBody.lf)
+        bos.writeFloat(softBody.pr)
+        bos.writeFloat(softBody.vc)
+        bos.writeFloat(softBody.df)
+        bos.writeFloat(softBody.mt)
+        bos.writeFloat(softBody.chr)
+        bos.writeFloat(softBody.khr)
+        bos.writeFloat(softBody.shr)
+        bos.writeFloat(softBody.ahr)
+        bos.writeFloat(softBody.srhrCl)
+        bos.writeFloat(softBody.skhrCl)
+        bos.writeFloat(softBody.sshrCl)
+        bos.writeFloat(softBody.srSpltCl)
+        bos.writeFloat(softBody.skSpltCl)
+        bos.writeFloat(softBody.ssSpltCl)
+        bos.writeInt(softBody.vIt)
+        bos.writeInt(softBody.pIt)
+        bos.writeInt(softBody.dIt)
+        bos.writeInt(softBody.cIt)
+        bos.writeFloat(softBody.lst)
+        bos.writeFloat(softBody.ast)
+        bos.writeFloat(softBody.vst)
+    }
+
+    private fun writeJoint(bos: ByteArrayOutputStream, joint: PmxFile.Joint, file: PmxFile) {
+        writeString(bos, joint.name, true)
+        writeString(bos, joint.englishName, true)
+        bos.write(joint.type.code.toByte())
+        bos.writeInt(joint.rigidBody1)
+        bos.writeInt(joint.rigidBody2)
+        bos.writeFloat(joint.position[0])
+        bos.writeFloat(joint.position[1])
+        bos.writeFloat(joint.position[2])
+        bos.writeFloat(joint.orientation[0])
+        bos.writeFloat(joint.orientation[1])
+        bos.writeFloat(joint.orientation[2])
+        bos.writeFloat(joint.moveLimitationMin[0])
+        bos.writeFloat(joint.moveLimitationMin[1])
+        bos.writeFloat(joint.moveLimitationMin[2])
+        bos.writeFloat(joint.moveLimitationMax[0])
+        bos.writeFloat(joint.moveLimitationMax[1])
+        bos.writeFloat(joint.moveLimitationMax[2])
+        bos.writeFloat(joint.rotationLimitationMin[0])
+        bos.writeFloat(joint.rotationLimitationMin[1])
+        bos.writeFloat(joint.rotationLimitationMin[2])
+        bos.writeFloat(joint.rotationLimitationMax[0])
+        bos.writeFloat(joint.rotationLimitationMax[1])
+        bos.writeFloat(joint.rotationLimitationMax[2])
+        bos.writeFloat(joint.springTranslateFactor[0])
+        bos.writeFloat(joint.springTranslateFactor[1])
+        bos.writeFloat(joint.springTranslateFactor[2])
+        bos.writeFloat(joint.springRotateFactor[0])
+        bos.writeFloat(joint.springRotateFactor[1])
+        bos.writeFloat(joint.springRotateFactor[2])
+    }
+
+    private fun writeRigidBody(bos: ByteArrayOutputStream, rigidBody: PmxFile.RigidBody, file: PmxFile) {
+        writeString(bos, rigidBody.name, true)
+        writeString(bos, rigidBody.englishName, true)
+        bos.writeInt(rigidBody.targetBone)
+        bos.write(rigidBody.group.toByte())
+        bos.writeShort(rigidBody.mask)
+        bos.write(rigidBody.shape.toByte())
+        bos.writeFloat(rigidBody.size[0])
+        bos.writeFloat(rigidBody.size[1])
+        bos.writeFloat(rigidBody.size[2])
+        bos.writeFloat(rigidBody.position[0])
+        bos.writeFloat(rigidBody.position[1])
+        bos.writeFloat(rigidBody.position[2])
+        bos.writeFloat(rigidBody.orientation[0])
+        bos.writeFloat(rigidBody.orientation[1])
+        bos.writeFloat(rigidBody.orientation[2])
+        bos.writeFloat(rigidBody.mass)
+        bos.writeFloat(rigidBody.moveAttenuation)
+        bos.writeFloat(rigidBody.rotationAttenuation)
+        bos.writeFloat(rigidBody.repulsion)
+        bos.writeFloat(rigidBody.friction)
+        bos.write(rigidBody.type.toByte())
+    }
+
+    private fun writeDisplayFrame(bos: ByteArrayOutputStream, displayFrame: PmxFile.DisplayFrame, file: PmxFile) {
+        writeString(bos, displayFrame.name, true)
+        writeString(bos, displayFrame.englishName, true)
+        bos.write(displayFrame.flag.toByte())
+        bos.writeInt(displayFrame.elements.size)
+        for (element in displayFrame.elements) {
+            bos.write(element.target.toByte())
+            bos.writeInt(element.index)
+        }
+    }
+
+    private fun writeMorph(bos: ByteArrayOutputStream, morph: PmxFile.Morph, file: PmxFile) {
+        writeString(bos, morph.name, true)
+        writeString(bos, morph.englishName, true)
+        bos.write(morph.category.code.toByte())
+        bos.write(morph.type.code.toByte())
+        bos.writeInt(morph.offsets.size)
+        morph.offsets.forEach { offset ->
+            when(offset) {
+                is PmxFile.Morph.GroupOffset -> {
+                    bos.writeInt(offset.index)
+                    bos.writeFloat(offset.weight)
+                }
+                is PmxFile.Morph.VertexOffset -> {
+                    bos.writeInt(offset.index)
+                    bos.writeFloat(offset.position[0])
+                    bos.writeFloat(offset.position[1])
+                    bos.writeFloat(offset.position[2])
+                }
+                is PmxFile.Morph.BoneOffset -> {
+                    bos.writeInt(offset.index)
+                    bos.writeFloat(offset.translation[0])
+                    bos.writeFloat(offset.translation[1])
+                    bos.writeFloat(offset.translation[2])
+                    bos.writeFloat(offset.rotation[0])
+                    bos.writeFloat(offset.rotation[1])
+                    bos.writeFloat(offset.rotation[2])
+                    bos.writeFloat(offset.rotation[3])
+                }
+                is PmxFile.Morph.MaterialOffset -> {
+                    bos.writeInt(offset.index)
+                    bos.write(offset.operation.toByte())
+                    bos.writeFloat(offset.diffuse[0])
+                    bos.writeFloat(offset.diffuse[1])
+                    bos.writeFloat(offset.diffuse[2])
+                    bos.writeFloat(offset.diffuse[3])
+                    bos.writeFloat(offset.specular[0])
+                    bos.writeFloat(offset.specular[1])
+                    bos.writeFloat(offset.specular[2])
+                    bos.writeFloat(offset.specularlity)
+                    bos.writeFloat(offset.ambient[0])
+                    bos.writeFloat(offset.ambient[1])
+                    bos.writeFloat(offset.ambient[2])
+                    bos.writeFloat(offset.edgeColor.red / 255f)
+                    bos.writeFloat(offset.edgeColor.green / 255f)
+                    bos.writeFloat(offset.edgeColor.blue / 255f)
+                    bos.writeFloat(offset.edgeColor.alpha / 255f)
+                    bos.writeFloat(offset.edgeSize)
+                    bos.writeFloat(offset.textureColor.red / 255f)
+                    bos.writeFloat(offset.textureColor.green / 255f)
+                    bos.writeFloat(offset.textureColor.blue / 255f)
+                    bos.writeFloat(offset.textureColor.alpha / 255f)
+                    bos.writeFloat(offset.sphereTextureColor.red / 255f)
+                    bos.writeFloat(offset.sphereTextureColor.green / 255f)
+                    bos.writeFloat(offset.sphereTextureColor.blue / 255f)
+                    bos.writeFloat(offset.sphereTextureColor.alpha / 255f)
+                    bos.writeFloat(offset.toonTextureColor.red / 255f)
+                    bos.writeFloat(offset.toonTextureColor.green / 255f)
+                    bos.writeFloat(offset.toonTextureColor.blue / 255f)
+                    bos.writeFloat(offset.toonTextureColor.alpha / 255f)
+                }
+                is PmxFile.Morph.UvOffset -> {
+                    bos.writeInt(offset.index)
+                    bos.writeFloat(offset.offset[0])
+                    bos.writeFloat(offset.offset[1])
+                    bos.writeFloat(offset.offset[2])
+                    bos.writeFloat(offset.offset[3])
+                }
+                is PmxFile.Morph.FlipOffset -> {
+                    bos.writeInt(offset.index)
+                    bos.writeFloat(offset.value)
+                }
+                is PmxFile.Morph.ImpulseOffset -> {
+                    bos.writeInt(offset.index)
+                    bos.writeBool(offset.isLocal)
+                    bos.writeFloat(offset.velocity[0])
+                    bos.writeFloat(offset.velocity[1])
+                    bos.writeFloat(offset.velocity[2])
+                    bos.writeFloat(offset.angularTorgue[0])
+                    bos.writeFloat(offset.angularTorgue[1])
+                    bos.writeFloat(offset.angularTorgue[2])
+                }
+            }
+        }
+    }
+
+    private fun writeBone(bos: ByteArrayOutputStream, bone: PmxFile.Bone, file: PmxFile) {
+        writeString(bos, bone.name, true)
+        writeString(bos, bone.englishName, true)
+        bos.writeFloat(bone.position[0])
+        bos.writeFloat(bone.position[1])
+        bos.writeFloat(bone.position[2])
+        bos.writeInt(bone.parentIndex)
+        bos.writeInt(bone.level)
+        bos.writeShort(bone.flag)
+        if (bone.flag.toInt() and 0x01 != 0x00) {
+            bos.writeInt(bone.targetIndex)
+        } else {
+            bos.writeFloat(bone.offset[0])
+            bos.writeFloat(bone.offset[1])
+            bos.writeFloat(bone.offset[2])
+        }
+        if (bone.flag.toInt() and (0x0100 or 0x0200) != 0x00) {
+            bos.writeInt(bone.grandParentIndex)
+            bos.writeFloat(bone.grantWeight)
+        }
+        if (bone.flag.toInt() and 0x0400 != 0x00) {
+            bos.writeFloat(bone.fixedAxis[0])
+            bos.writeFloat(bone.fixedAxis[1])
+            bos.writeFloat(bone.fixedAxis[2])
+        }
+        if (bone.flag.toInt() and 0x0800 != 0x00) {
+            bos.writeFloat(bone.localXAxis[0])
+            bos.writeFloat(bone.localXAxis[1])
+            bos.writeFloat(bone.localXAxis[2])
+            bos.writeFloat(bone.localZAxis[0])
+            bos.writeFloat(bone.localZAxis[1])
+            bos.writeFloat(bone.localZAxis[2])
+        }
+        if (bone.flag.toInt() and 0x2000 != 0x00) {
+            bos.writeInt(bone.key)
+        }
+        if (bone.flag.toInt() and 0x0020 != 0x00) {
+            bos.writeInt(bone.ikTargetBoneIndex)
+            bos.writeInt(bone.ikLoop)
+            bos.writeFloat(bone.ikLoopAngleLimit)
+            bos.writeInt(bone.ikLinks.size)
+            bone.ikLinks.forEach { ikLink ->
+                bos.writeInt(ikLink.linkTarget)
+                bos.write(ikLink.angleLock.toByte())
+                if(ikLink.angleLock == 1) {
+                    bos.writeFloat(ikLink.maxRadian[0])
+                    bos.writeFloat(ikLink.maxRadian[1])
+                    bos.writeFloat(ikLink.maxRadian[2])
+                    bos.writeFloat(ikLink.minRadian[0])
+                    bos.writeFloat(ikLink.minRadian[1])
+                    bos.writeFloat(ikLink.minRadian[2])
+                }
+            }
+        }
+    }
+
+    private fun writeMaterial(bos: ByteArrayOutputStream, material: PmxFile.Material, file: PmxFile) {
+        writeString(bos, material.name, true)
+        writeString(bos, material.englishName, true)
+        bos.writeFloat(material.diffuse[0])
+        bos.writeFloat(material.diffuse[1])
+        bos.writeFloat(material.diffuse[2])
+        bos.writeFloat(material.diffuse[3])
+        bos.writeFloat(material.specular[0])
+        bos.writeFloat(material.specular[1])
+        bos.writeFloat(material.specular[2])
+        bos.writeFloat(material.specularlity)
+        bos.writeFloat(material.ambient[0])
+        bos.writeFloat(material.ambient[1])
+        bos.writeFloat(material.ambient[2])
+        bos.write(material.flag.toByte())
+        bos.writeFloat(material.edgeColor.red / 255f)
+        bos.writeFloat(material.edgeColor.green / 255f)
+        bos.writeFloat(material.edgeColor.blue / 255f)
+        bos.writeFloat(material.edgeColor.alpha / 255f)
+        bos.writeFloat(material.edgeSize)
+        bos.writeInt(material.diffuseTextureIndex)
+        bos.writeInt(material.sphereTextureIndex)
+        bos.write(material.sphereOpMode.toByte())
+        bos.writeBool(false)
+        bos.writeInt(material.toonTextureIndex)
+        writeString(bos, material.memo, true)
+        bos.writeInt(material.index)
+    }
+
+    private fun writeVertex(bos: ByteArrayOutputStream, vertex: PmxFile.Vertex, file: PmxFile) {
+        bos.writeFloat(vertex.position[0])
+        bos.writeFloat(vertex.position[1])
+        bos.writeFloat(vertex.position[2])
+        bos.writeFloat(vertex.normal[0])
+        bos.writeFloat(vertex.normal[1])
+        bos.writeFloat(vertex.normal[2])
+        bos.writeFloat(vertex.uv[0])
+        bos.writeFloat(vertex.uv[1])
+        for(i in 0 until file.uv) {
+            bos.writeFloat(vertex.uva[i][0])
+            bos.writeFloat(vertex.uva[i][1])
+            bos.writeFloat(vertex.uva[i][2])
+            bos.writeFloat(vertex.uva[i][3])
+        }
+        val skinning = vertex.skinning
+        bos.write(skinning.code.toByte())
+        when (skinning) {
+            is PmxFile.Vertex.SkinningBDEF1 -> {
+                bos.writeInt(skinning.boneIndex)
+            }
+            is PmxFile.Vertex.SkinningBDEF2 -> {
+                bos.writeInt(skinning.boneIndex1)
+                bos.writeInt(skinning.boneIndex2)
+                bos.writeFloat(skinning.weight)
+            }
+            is PmxFile.Vertex.SkinningBDEF4 -> {
+                bos.writeInt(skinning.boneIndex1)
+                bos.writeInt(skinning.boneIndex2)
+                bos.writeInt(skinning.boneIndex3)
+                bos.writeInt(skinning.boneIndex4)
+                bos.writeFloat(skinning.weight1)
+                bos.writeFloat(skinning.weight2)
+                bos.writeFloat(skinning.weight3)
+                bos.writeFloat(skinning.weight4)
+            }
+            is PmxFile.Vertex.SkinningSDEF -> {
+                bos.writeInt(skinning.boneIndex1)
+                bos.writeInt(skinning.boneIndex2)
+                bos.writeFloat(skinning.weight)
+                bos.writeFloat(skinning.c[0])
+                bos.writeFloat(skinning.c[1])
+                bos.writeFloat(skinning.c[2])
+                bos.writeFloat(skinning.r0[0])
+                bos.writeFloat(skinning.r0[1])
+                bos.writeFloat(skinning.r0[2])
+                bos.writeFloat(skinning.r1[0])
+                bos.writeFloat(skinning.r1[1])
+                bos.writeFloat(skinning.r1[2])
+            }
+            is PmxFile.Vertex.SkinningQDEF -> {
+                bos.writeInt(skinning.boneIndex1)
+                bos.writeInt(skinning.boneIndex2)
+                bos.writeInt(skinning.boneIndex3)
+                bos.writeInt(skinning.boneIndex4)
+                bos.writeFloat(skinning.weight1)
+                bos.writeFloat(skinning.weight2)
+                bos.writeFloat(skinning.weight3)
+                bos.writeFloat(skinning.weight4)
+            }
+        }
+        bos.writeFloat(vertex.edge)
     }
 
     /**

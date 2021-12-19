@@ -2,12 +2,12 @@
 MMDUtils is a library for read/write mmd related file in java
 
 # Features
-[X] Read/Write VMD(Vocaloid Motion Data) file  
-[ ] Read/Write PMX(Polygon Model eXtended) 2.0 file  
-[ ] Read/Write PMD(Polygon Model Data) file  
-[ ] Render model in LWJGL  
-[ ] Process physics bone for model  
-[ ] Display VMD animation
+- [X] Read/Write VMD(Vocaloid Motion Data) file  
+- [X] Read/Write PMX(Polygon Model eXtended) 2.0 file  
+- [ ] Read/Write PMD(Polygon Model Data) file  
+- [ ] Render model in LWJGL  
+- [ ] Process physics bone for model  
+- [ ] Display VMD animation
 
 # PMD Format Support
 We currently don't want to add support for PMD format, because [PMX file is better](https://learnmmd.com/bonus-pages/convert-pmd-models-pmx/) ~~and we are lazy~~.  

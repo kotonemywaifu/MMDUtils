@@ -11,6 +11,7 @@ class PmxFile: InteractiveFile() {
     var englishName = ""
     var comment = ""
     var englishComment = ""
+    var uv = 0
     val vertices = mutableListOf<Vertex>()
     val indices = mutableListOf<Int>()
     val textures = mutableListOf<String>()

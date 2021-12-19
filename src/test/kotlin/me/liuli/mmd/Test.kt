@@ -4,9 +4,7 @@ import me.liuli.mmd.file.PmxFile
 import me.liuli.mmd.file.VmdFile
 import me.liuli.mmd.file.parser.PmxParser
 import me.liuli.mmd.file.parser.VmdParser
-import me.liuli.mmd.utils.readString
 import java.io.File
-import java.nio.ByteBuffer
 
 fun main(args: Array<String>) {
 //    testVmd()
@@ -58,6 +56,12 @@ fun testPmx() {
 
     val jfile = File("test_files/pmx/greyraven_xxi.pmx")
     var pmxFile = PmxParser.read(jfile.readBytes())
+
+    summary(pmxFile)
+
+    val out = PmxParser.write(pmxFile)
+    File("test_files/pmx/out.pmx").writeBytes(out)
+    pmxFile = PmxParser.read(out)
 
     summary(pmxFile)
 }
