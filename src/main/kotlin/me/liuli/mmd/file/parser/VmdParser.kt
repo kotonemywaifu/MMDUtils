@@ -2,6 +2,7 @@ package me.liuli.mmd.file.parser
 
 import me.liuli.mmd.file.VmdFile
 import me.liuli.mmd.utils.*
+import java.awt.Color
 import java.io.ByteArrayOutputStream
 import java.io.IOException
 
@@ -63,13 +64,8 @@ object VmdParser : Parser<VmdFile> {
 
         boneFrame.name = iterator.readString(15)
         boneFrame.frame = iterator.readInt()
-        boneFrame.position[0] = iterator.readFloat()
-        boneFrame.position[1] = iterator.readFloat()
-        boneFrame.position[2] = iterator.readFloat()
-        boneFrame.orientation[0] = iterator.readFloat()
-        boneFrame.orientation[1] = iterator.readFloat()
-        boneFrame.orientation[2] = iterator.readFloat()
-        boneFrame.orientation[3] = iterator.readFloat()
+        iterator.readVector3f(boneFrame.position)
+        iterator.readVector4f(boneFrame.orientation)
         iterator.read(boneFrame.interpolation, 0, 4 * 4 * 4)
 
         return boneFrame
@@ -90,12 +86,8 @@ object VmdParser : Parser<VmdFile> {
 
         cameraFrame.frame = iterator.readInt()
         cameraFrame.distance = iterator.readFloat()
-        cameraFrame.position[0] = iterator.readFloat()
-        cameraFrame.position[1] = iterator.readFloat()
-        cameraFrame.position[2] = iterator.readFloat()
-        cameraFrame.orientation[0] = iterator.readFloat()
-        cameraFrame.orientation[1] = iterator.readFloat()
-        cameraFrame.orientation[2] = iterator.readFloat()
+        iterator.readVector3f(cameraFrame.position)
+        iterator.readVector3f(cameraFrame.orientation)
         iterator.read(cameraFrame.interpolation, 0, 24)
         cameraFrame.angle = iterator.readFloat()
         iterator.read(cameraFrame.unknown, 0, 3)
@@ -107,12 +99,8 @@ object VmdParser : Parser<VmdFile> {
         val lightFrame = VmdFile.LightFrame()
 
         lightFrame.frame = iterator.readInt()
-        lightFrame.color[0] = iterator.readFloat()
-        lightFrame.color[1] = iterator.readFloat()
-        lightFrame.color[2] = iterator.readFloat()
-        lightFrame.position[0] = iterator.readFloat()
-        lightFrame.position[1] = iterator.readFloat()
-        lightFrame.position[2] = iterator.readFloat()
+        lightFrame.color = iterator.readColor3f()
+        iterator.readVector3f(lightFrame.position)
 
         return lightFrame
     }
@@ -184,13 +172,8 @@ object VmdParser : Parser<VmdFile> {
     private fun writeBoneFrame(bos: ByteArrayOutputStream, boneFrame: VmdFile.BoneFrame) {
         bos.writeLimited(boneFrame.name.toStandardByteArray(), 15)
         bos.writeInt(boneFrame.frame)
-        bos.writeFloat(boneFrame.position[0])
-        bos.writeFloat(boneFrame.position[1])
-        bos.writeFloat(boneFrame.position[2])
-        bos.writeFloat(boneFrame.orientation[0])
-        bos.writeFloat(boneFrame.orientation[1])
-        bos.writeFloat(boneFrame.orientation[2])
-        bos.writeFloat(boneFrame.orientation[3])
+        bos.writeVector3f(boneFrame.position)
+        bos.writeVector4f(boneFrame.orientation)
         bos.write(boneFrame.interpolation)
     }
 
@@ -203,12 +186,8 @@ object VmdParser : Parser<VmdFile> {
     private fun writeCameraFrame(bos: ByteArrayOutputStream, cameraFrame: VmdFile.CameraFrame) {
         bos.writeInt(cameraFrame.frame)
         bos.writeFloat(cameraFrame.distance)
-        bos.writeFloat(cameraFrame.position[0])
-        bos.writeFloat(cameraFrame.position[1])
-        bos.writeFloat(cameraFrame.position[2])
-        bos.writeFloat(cameraFrame.orientation[0])
-        bos.writeFloat(cameraFrame.orientation[1])
-        bos.writeFloat(cameraFrame.orientation[2])
+        bos.writeVector3f(cameraFrame.position)
+        bos.writeVector3f(cameraFrame.orientation)
         bos.write(cameraFrame.interpolation)
         bos.writeFloat(cameraFrame.angle)
         bos.write(cameraFrame.unknown)
@@ -216,12 +195,8 @@ object VmdParser : Parser<VmdFile> {
 
     private fun writeLightFrame(bos: ByteArrayOutputStream, lightFrame: VmdFile.LightFrame) {
         bos.writeInt(lightFrame.frame)
-        bos.writeFloat(lightFrame.color[0])
-        bos.writeFloat(lightFrame.color[1])
-        bos.writeFloat(lightFrame.color[2])
-        bos.writeFloat(lightFrame.position[0])
-        bos.writeFloat(lightFrame.position[1])
-        bos.writeFloat(lightFrame.position[2])
+        bos.writeColor3f(lightFrame.color)
+        bos.writeVector3f(lightFrame.position)
     }
 
     private fun writeIkFrame(bos: ByteArrayOutputStream, ikFrame: VmdFile.IkFrame) {

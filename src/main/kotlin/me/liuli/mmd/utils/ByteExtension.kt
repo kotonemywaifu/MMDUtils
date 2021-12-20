@@ -1,7 +1,10 @@
 package me.liuli.mmd.utils
 
+import java.awt.Color
 import java.io.ByteArrayOutputStream
 import java.nio.ByteBuffer
+import javax.vecmath.Vector3f
+import javax.vecmath.Vector4f
 
 /**
  * read a length of bytes from [ByteIterator]
@@ -85,6 +88,39 @@ fun ByteIterator.readString(length: Int, noZero: Boolean = true): String {
  */
 fun ByteIterator.readBool(): Boolean {
     return this.next() == 1.toByte()
+}
+
+/**
+ * read [Vector3f] from [ByteIterator]
+ */
+fun ByteIterator.readVector3f(vector: Vector3f) {
+    vector.x = this.readFloat()
+    vector.y = this.readFloat()
+    vector.z = this.readFloat()
+}
+
+/**
+ * read [Vector4f] from [ByteIterator]
+ */
+fun ByteIterator.readVector4f(vector: Vector4f) {
+    vector.x = this.readFloat()
+    vector.y = this.readFloat()
+    vector.z = this.readFloat()
+    vector.w = this.readFloat()
+}
+
+/**
+ * read color3f from [ByteIterator]
+ */
+fun ByteIterator.readColor3f(): Color {
+    return Color(this.readFloat(), this.readFloat(), this.readFloat())
+}
+
+/**
+ * read color4f from [ByteIterator]
+ */
+fun ByteIterator.readColor4f(): Color {
+    return Color(this.readFloat(), this.readFloat(), this.readFloat(), this.readFloat())
 }
 
 /**
@@ -176,4 +212,42 @@ fun String.toStandardByteArray(): ByteArray {
         bos.write(byteArrayOf(c.code.toByte()))
     }
     return bos.toByteArray()
+}
+
+/**
+ * write [Vector3f] to [ByteArrayOutputStream]
+ */
+fun ByteArrayOutputStream.writeVector3f(vector: Vector3f) {
+    this.writeFloat(vector.x)
+    this.writeFloat(vector.y)
+    this.writeFloat(vector.z)
+}
+
+/**
+ * write [Vector4f] to [ByteArrayOutputStream]
+ */
+fun ByteArrayOutputStream.writeVector4f(vector: Vector4f) {
+    this.writeFloat(vector.x)
+    this.writeFloat(vector.y)
+    this.writeFloat(vector.z)
+    this.writeFloat(vector.w)
+}
+
+/**
+ * write color3f to [ByteArrayOutputStream]
+ */
+fun ByteArrayOutputStream.writeColor3f(color: Color) {
+    this.writeFloat(color.red / 255f)
+    this.writeFloat(color.green / 255f)
+    this.writeFloat(color.blue / 255f)
+}
+
+/**
+ * write color4f to [ByteArrayOutputStream]
+ */
+fun ByteArrayOutputStream.writeColor4f(color: Color) {
+    this.writeFloat(color.red / 255f)
+    this.writeFloat(color.green / 255f)
+    this.writeFloat(color.blue / 255f)
+    this.writeFloat(color.alpha / 255f)
 }

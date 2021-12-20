@@ -2,6 +2,8 @@ package me.liuli.mmd.file
 
 import me.liuli.mmd.file.parser.PmxParser
 import java.awt.Color
+import javax.vecmath.Vector3f
+import javax.vecmath.Vector4f
 
 /**
  * PMX(Polygon Model eXtended) is a 3d model file format used in the program [MikuMikuDance](https://mikumikudance.jp/).
@@ -24,8 +26,8 @@ class PmxFile: InteractiveFile() {
     val softBodies = mutableListOf<SoftBody>()
 
     class Vertex {
-        val position = floatArrayOf(0f, 0f, 0f)
-        val normal = floatArrayOf(0f, 0f, 0f)
+        val position = Vector3f()
+        val normal = Vector3f()
         val uv = floatArrayOf(0f, 0f)
         val uva = Array(4) { FloatArray(4) }
         var skinning: SkinningType = SkinningBDEF1()
@@ -64,9 +66,9 @@ class PmxFile: InteractiveFile() {
             var boneIndex1 = 0
             var boneIndex2 = 0
             var weight = 0f
-            var c = floatArrayOf(0f, 0f, 0f)
-            var r0 = floatArrayOf(0f, 0f, 0f)
-            var r1 = floatArrayOf(0f, 0f, 0f)
+            var c = Vector3f()
+            var r0 = Vector3f()
+            var r1 = Vector3f()
         }
 
         class SkinningQDEF : SkinningType {
@@ -85,10 +87,10 @@ class PmxFile: InteractiveFile() {
     class Material {
         var name = ""
         var englishName = ""
-        val diffuse = floatArrayOf(0f, 0f, 0f, 0f)
-        val specular = floatArrayOf(0f, 0f, 0f)
+        val diffuse = Vector4f()
+        val specular = Vector3f()
         var specularlity = 0f
-        val ambient = floatArrayOf(0f, 0f, 0f)
+        val ambient = Vector3f()
         var flag = 0
         var edgeColor: Color = Color.WHITE
         var edgeSize = 0f
@@ -103,17 +105,17 @@ class PmxFile: InteractiveFile() {
     class Bone {
         var name = ""
         var englishName = ""
-        val position = floatArrayOf(0f, 0f, 0f)
+        val position = Vector3f()
         var parentIndex = 0
         var level = 0
         var flag: Short = 0
-        val offset = floatArrayOf(0f, 0f, 0f)
+        val offset = Vector3f()
         var targetIndex = 0
         var grandParentIndex = 0
         var grantWeight = 0f
-        val fixedAxis = floatArrayOf(0f, 0f, 0f)
-        val localXAxis = floatArrayOf(0f, 0f, 0f)
-        val localZAxis = floatArrayOf(0f, 0f, 0f)
+        val fixedAxis = Vector3f()
+        val localXAxis = Vector3f()
+        val localZAxis = Vector3f()
         var key = 0
         var ikTargetBoneIndex = 0
         var ikLoop = 0
@@ -123,8 +125,8 @@ class PmxFile: InteractiveFile() {
         class IkLink {
             var linkTarget = 0
             var angleLock = 0
-            val maxRadian = floatArrayOf(0f, 0f, 0f)
-            val minRadian = floatArrayOf(0f, 0f, 0f)
+            val maxRadian = Vector3f()
+            val minRadian = Vector3f()
         }
     }
 
@@ -170,30 +172,30 @@ class PmxFile: InteractiveFile() {
         class VertexOffset : Offset {
             override val type: Type = Type.VERTEX
             var index = 0
-            val position = floatArrayOf(0f, 0f, 0f)
+            val position = Vector3f()
         }
 
         class BoneOffset : Offset {
             override val type: Type = Type.BONE
             var index = 0
-            val translation = floatArrayOf(0f, 0f, 0f)
-            val rotation = floatArrayOf(0f, 0f, 0f, 0f)
+            val translation = Vector3f()
+            val rotation = Vector4f()
         }
 
         class UvOffset : Offset {
             override val type: Type = Type.UV
             var index = 0
-            var offset = floatArrayOf(0f, 0f, 0f, 0f)
+            var offset = Vector4f()
         }
 
         class MaterialOffset : Offset {
             override val type: Type = Type.MATERIAL
             var index = 0
             var operation = 0
-            val diffuse = floatArrayOf(0f, 0f, 0f, 0f)
-            val specular = floatArrayOf(0f, 0f, 0f)
+            val diffuse = Vector4f()
+            val specular = Vector3f()
             var specularlity = 0f
-            val ambient = floatArrayOf(0f, 0f, 0f)
+            val ambient = Vector3f()
             var edgeColor: Color = Color.WHITE
             var edgeSize = 0f
             var textureColor: Color = Color.WHITE
@@ -211,8 +213,8 @@ class PmxFile: InteractiveFile() {
             override val type: Type = Type.IMPULSE
             var index = 0
             var isLocal = false
-            val velocity = floatArrayOf(0f, 0f, 0f)
-            val angularTorgue = floatArrayOf(0f, 0f, 0f)
+            val velocity = Vector3f()
+            val angularTorgue = Vector3f()
         }
     }
 
@@ -235,9 +237,9 @@ class PmxFile: InteractiveFile() {
         var group = 0
         var mask: Short = 0
         var shape = 0
-        var size = floatArrayOf(0f, 0f, 0f)
-        var position = floatArrayOf(0f, 0f, 0f)
-        var orientation = floatArrayOf(0f, 0f, 0f, 0f)
+        var size = Vector3f()
+        var position = Vector3f()
+        var orientation = Vector3f()
         var mass = 0f
         var moveAttenuation = 0f
         var rotationAttenuation = 0f
@@ -253,14 +255,14 @@ class PmxFile: InteractiveFile() {
         // params
         var rigidBody1 = 0
         var rigidBody2 = 0
-        val position = floatArrayOf(0f, 0f, 0f)
-        val orientation = floatArrayOf(0f, 0f, 0f)
-        val moveLimitationMax = floatArrayOf(0f, 0f, 0f)
-        val moveLimitationMin = floatArrayOf(0f, 0f, 0f)
-        val rotationLimitationMax = floatArrayOf(0f, 0f, 0f)
-        val rotationLimitationMin = floatArrayOf(0f, 0f, 0f)
-        val springTranslateFactor = floatArrayOf(0f, 0f, 0f)
-        val springRotateFactor = floatArrayOf(0f, 0f, 0f)
+        val position = Vector3f()
+        val orientation = Vector3f()
+        val moveLimitationMax = Vector3f()
+        val moveLimitationMin = Vector3f()
+        val rotationLimitationMax = Vector3f()
+        val rotationLimitationMin = Vector3f()
+        val springTranslateFactor = Vector3f()
+        val springRotateFactor = Vector3f()
 
         enum class Type(val code: Int) {
             GENERIC6DOF_SPRING(0),

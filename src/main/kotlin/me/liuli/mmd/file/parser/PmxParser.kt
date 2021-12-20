@@ -2,7 +2,6 @@ package me.liuli.mmd.file.parser
 
 import me.liuli.mmd.file.PmxFile
 import me.liuli.mmd.utils.*
-import java.awt.Color
 import java.io.ByteArrayOutputStream
 
 object PmxParser : Parser<PmxFile> {
@@ -149,30 +148,14 @@ object PmxParser : Parser<PmxFile> {
         joint.type = PmxFile.Joint.Type.values().find { it.code == typeCode } ?: throw IllegalArgumentException("Invalid joint type code: $typeCode")
         joint.rigidBody1 = readInt(iterator, setting.rigidBodyIndexSize)
         joint.rigidBody2 = readInt(iterator, setting.rigidBodyIndexSize)
-        joint.position[0] = iterator.readFloat()
-        joint.position[1] = iterator.readFloat()
-        joint.position[2] = iterator.readFloat()
-        joint.orientation[0] = iterator.readFloat()
-        joint.orientation[1] = iterator.readFloat()
-        joint.orientation[2] = iterator.readFloat()
-        joint.moveLimitationMin[0] = iterator.readFloat()
-        joint.moveLimitationMin[1] = iterator.readFloat()
-        joint.moveLimitationMin[2] = iterator.readFloat()
-        joint.moveLimitationMax[0] = iterator.readFloat()
-        joint.moveLimitationMax[1] = iterator.readFloat()
-        joint.moveLimitationMax[2] = iterator.readFloat()
-        joint.rotationLimitationMin[0] = iterator.readFloat()
-        joint.rotationLimitationMin[1] = iterator.readFloat()
-        joint.rotationLimitationMin[2] = iterator.readFloat()
-        joint.rotationLimitationMax[0] = iterator.readFloat()
-        joint.rotationLimitationMax[1] = iterator.readFloat()
-        joint.rotationLimitationMax[2] = iterator.readFloat()
-        joint.springTranslateFactor[0] = iterator.readFloat()
-        joint.springTranslateFactor[1] = iterator.readFloat()
-        joint.springTranslateFactor[2] = iterator.readFloat()
-        joint.springRotateFactor[0] = iterator.readFloat()
-        joint.springRotateFactor[1] = iterator.readFloat()
-        joint.springRotateFactor[2] = iterator.readFloat()
+        iterator.readVector3f(joint.position)
+        iterator.readVector3f(joint.orientation)
+        iterator.readVector3f(joint.moveLimitationMin)
+        iterator.readVector3f(joint.moveLimitationMax)
+        iterator.readVector3f(joint.rotationLimitationMin)
+        iterator.readVector3f(joint.rotationLimitationMax)
+        iterator.readVector3f(joint.springTranslateFactor)
+        iterator.readVector3f(joint.springRotateFactor)
 
         return joint
     }
@@ -186,15 +169,9 @@ object PmxParser : Parser<PmxFile> {
         rigidBody.group = iterator.next().toInt()
         rigidBody.mask = iterator.readShort()
         rigidBody.shape = iterator.next().toInt()
-        rigidBody.size[0] = iterator.readFloat()
-        rigidBody.size[1] = iterator.readFloat()
-        rigidBody.size[2] = iterator.readFloat()
-        rigidBody.position[0] = iterator.readFloat()
-        rigidBody.position[1] = iterator.readFloat()
-        rigidBody.position[2] = iterator.readFloat()
-        rigidBody.orientation[0] = iterator.readFloat()
-        rigidBody.orientation[1] = iterator.readFloat()
-        rigidBody.orientation[2] = iterator.readFloat()
+        iterator.readVector3f(rigidBody.size)
+        iterator.readVector3f(rigidBody.position)
+        iterator.readVector3f(rigidBody.orientation)
         rigidBody.mass = iterator.readFloat()
         rigidBody.moveAttenuation = iterator.readFloat()
         rigidBody.rotationAttenuation = iterator.readFloat()
@@ -247,43 +224,29 @@ object PmxParser : Parser<PmxFile> {
                 PmxFile.Morph.Type.VERTEX -> {
                     val vertex = PmxFile.Morph.VertexOffset()
                     vertex.index = readInt(iterator, setting.vertexIndexSize)
-                    vertex.position[0] = iterator.readFloat()
-                    vertex.position[1] = iterator.readFloat()
-                    vertex.position[2] = iterator.readFloat()
+                    iterator.readVector3f(vertex.position)
                     vertex
                 }
                 PmxFile.Morph.Type.BONE -> {
                     val bone = PmxFile.Morph.BoneOffset()
                     bone.index = readInt(iterator, setting.boneIndexSize)
-                    bone.translation[0] = iterator.readFloat()
-                    bone.translation[1] = iterator.readFloat()
-                    bone.translation[2] = iterator.readFloat()
-                    bone.rotation[0] = iterator.readFloat()
-                    bone.rotation[1] = iterator.readFloat()
-                    bone.rotation[2] = iterator.readFloat()
-                    bone.rotation[3] = iterator.readFloat()
+                    iterator.readVector3f(bone.translation)
+                    iterator.readVector4f(bone.rotation)
                     bone
                 }
                 PmxFile.Morph.Type.MATERIAL -> {
                     val material = PmxFile.Morph.MaterialOffset()
                     material.index = readInt(iterator, setting.materialIndexSize)
                     material.operation = iterator.next().toInt()
-                    material.diffuse[0] = iterator.readFloat()
-                    material.diffuse[1] = iterator.readFloat()
-                    material.diffuse[2] = iterator.readFloat()
-                    material.diffuse[3] = iterator.readFloat()
-                    material.specular[0] = iterator.readFloat()
-                    material.specular[1] = iterator.readFloat()
-                    material.specular[2] = iterator.readFloat()
+                    iterator.readVector4f(material.diffuse)
+                    iterator.readVector3f(material.specular)
                     material.specularlity = iterator.readFloat()
-                    material.ambient[0] = iterator.readFloat()
-                    material.ambient[1] = iterator.readFloat()
-                    material.ambient[2] = iterator.readFloat()
-                    material.edgeColor = Color(iterator.readFloat(), iterator.readFloat(), iterator.readFloat(), iterator.readFloat())
+                    iterator.readVector3f(material.ambient)
+                    material.edgeColor = iterator.readColor4f()
                     material.edgeSize = iterator.readFloat()
-                    material.textureColor = Color(iterator.readFloat(), iterator.readFloat(), iterator.readFloat(), iterator.readFloat())
-                    material.sphereTextureColor = Color(iterator.readFloat(), iterator.readFloat(), iterator.readFloat(), iterator.readFloat())
-                    material.toonTextureColor = Color(iterator.readFloat(), iterator.readFloat(), iterator.readFloat(), iterator.readFloat())
+                    material.textureColor = iterator.readColor4f()
+                    material.sphereTextureColor = iterator.readColor4f()
+                    material.toonTextureColor = iterator.readColor4f()
                     material
                 }
                 PmxFile.Morph.Type.UV,
@@ -293,10 +256,7 @@ object PmxParser : Parser<PmxFile> {
                 PmxFile.Morph.Type.ADDITIONAL_UV4 -> {
                     val uv = PmxFile.Morph.UvOffset()
                     uv.index = readInt(iterator, setting.vertexIndexSize)
-                    uv.offset[0] = iterator.readFloat()
-                    uv.offset[1] = iterator.readFloat()
-                    uv.offset[2] = iterator.readFloat()
-                    uv.offset[3] = iterator.readFloat()
+                    iterator.readVector4f(uv.offset)
                     uv
                 }
                 PmxFile.Morph.Type.FLIP -> {
@@ -309,12 +269,8 @@ object PmxParser : Parser<PmxFile> {
                     val impulse = PmxFile.Morph.ImpulseOffset()
                     impulse.index = readInt(iterator, setting.rigidBodyIndexSize)
                     impulse.isLocal = iterator.readBool()
-                    impulse.velocity[0] = iterator.readFloat()
-                    impulse.velocity[1] = iterator.readFloat()
-                    impulse.velocity[2] = iterator.readFloat()
-                    impulse.angularTorgue[0] = iterator.readFloat()
-                    impulse.angularTorgue[1] = iterator.readFloat()
-                    impulse.angularTorgue[2] = iterator.readFloat()
+                    iterator.readVector3f(impulse.velocity)
+                    iterator.readVector3f(impulse.angularTorgue)
                     impulse
                 }
             })
@@ -328,35 +284,25 @@ object PmxParser : Parser<PmxFile> {
 
         bone.name = readString(iterator, setting.encoding)
         bone.englishName = readString(iterator, setting.encoding)
-        bone.position[0] = iterator.readFloat()
-        bone.position[1] = iterator.readFloat()
-        bone.position[2] = iterator.readFloat()
+        iterator.readVector3f(bone.position)
         bone.parentIndex = readInt(iterator, setting.boneIndexSize)
         bone.level = iterator.readInt()
         bone.flag = iterator.readShort()
         if (bone.flag.toInt() and 0x01 != 0x00) {
             bone.targetIndex = readInt(iterator, setting.boneIndexSize)
         } else {
-            bone.offset[0] = iterator.readFloat()
-            bone.offset[1] = iterator.readFloat()
-            bone.offset[2] = iterator.readFloat()
+            iterator.readVector3f(bone.offset)
         }
         if (bone.flag.toInt() and (0x0100 or 0x0200) != 0x00) {
             bone.grandParentIndex = readInt(iterator, setting.boneIndexSize)
             bone.grantWeight = iterator.readFloat()
         }
         if (bone.flag.toInt() and 0x0400 != 0x00) {
-            bone.fixedAxis[0] = iterator.readFloat()
-            bone.fixedAxis[1] = iterator.readFloat()
-            bone.fixedAxis[2] = iterator.readFloat()
+            iterator.readVector3f(bone.fixedAxis)
         }
         if (bone.flag.toInt() and 0x0800 != 0x00) {
-            bone.localXAxis[0] = iterator.readFloat()
-            bone.localXAxis[1] = iterator.readFloat()
-            bone.localXAxis[2] = iterator.readFloat()
-            bone.localZAxis[0] = iterator.readFloat()
-            bone.localZAxis[1] = iterator.readFloat()
-            bone.localZAxis[2] = iterator.readFloat()
+            iterator.readVector3f(bone.localXAxis)
+            iterator.readVector3f(bone.localZAxis)
         }
         if (bone.flag.toInt() and 0x2000 != 0x00) {
             bone.key = iterator.readInt()
@@ -371,12 +317,8 @@ object PmxParser : Parser<PmxFile> {
                 ikLink.linkTarget = readInt(iterator, setting.boneIndexSize)
                 ikLink.angleLock = iterator.next().toInt()
                 if (ikLink.angleLock == 1) {
-                    ikLink.maxRadian[0] = iterator.readFloat()
-                    ikLink.maxRadian[1] = iterator.readFloat()
-                    ikLink.maxRadian[2] = iterator.readFloat()
-                    ikLink.minRadian[0] = iterator.readFloat()
-                    ikLink.minRadian[1] = iterator.readFloat()
-                    ikLink.minRadian[2] = iterator.readFloat()
+                    iterator.readVector3f(ikLink.maxRadian)
+                    iterator.readVector3f(ikLink.minRadian)
                 }
                 bone.ikLinks.add(ikLink)
             }
@@ -390,19 +332,12 @@ object PmxParser : Parser<PmxFile> {
 
         material.name = readString(iterator, setting.encoding)
         material.englishName = readString(iterator, setting.encoding)
-        material.diffuse[0] = iterator.readFloat()
-        material.diffuse[1] = iterator.readFloat()
-        material.diffuse[2] = iterator.readFloat()
-        material.diffuse[3] = iterator.readFloat()
-        material.specular[0] = iterator.readFloat()
-        material.specular[1] = iterator.readFloat()
-        material.specular[2] = iterator.readFloat()
+        iterator.readVector4f(material.diffuse)
+        iterator.readVector3f(material.specular)
         material.specularlity = iterator.readFloat()
-        material.ambient[0] = iterator.readFloat()
-        material.ambient[1] = iterator.readFloat()
-        material.ambient[2] = iterator.readFloat()
+        iterator.readVector3f(material.ambient)
         material.flag = iterator.next().toInt()
-        material.edgeColor = Color(iterator.readFloat(), iterator.readFloat(), iterator.readFloat(), iterator.readFloat())
+        material.edgeColor = iterator.readColor4f()
         material.edgeSize = iterator.readFloat()
         material.diffuseTextureIndex = readInt(iterator, setting.textureIndexSize)
         material.sphereTextureIndex = readInt(iterator, setting.textureIndexSize)
@@ -421,12 +356,8 @@ object PmxParser : Parser<PmxFile> {
     private fun readVertex(iterator: ByteIterator, setting: Setting): PmxFile.Vertex {
         val vertex = PmxFile.Vertex()
 
-        vertex.position[0] = iterator.readFloat()
-        vertex.position[1] = iterator.readFloat()
-        vertex.position[2] = iterator.readFloat()
-        vertex.normal[0] = iterator.readFloat()
-        vertex.normal[1] = iterator.readFloat()
-        vertex.normal[2] = iterator.readFloat()
+        iterator.readVector3f(vertex.position)
+        iterator.readVector3f(vertex.normal)
         vertex.uv[0] = iterator.readFloat()
         vertex.uv[1] = iterator.readFloat()
         for(i in 0 until setting.uv) {
@@ -466,15 +397,9 @@ object PmxParser : Parser<PmxFile> {
                 skinning.boneIndex1 = readInt(iterator, setting.boneIndexSize)
                 skinning.boneIndex2 = readInt(iterator, setting.boneIndexSize)
                 skinning.weight = iterator.readFloat()
-                skinning.c[0] = iterator.readFloat()
-                skinning.c[1] = iterator.readFloat()
-                skinning.c[2] = iterator.readFloat()
-                skinning.r0[0] = iterator.readFloat()
-                skinning.r0[1] = iterator.readFloat()
-                skinning.r0[2] = iterator.readFloat()
-                skinning.r1[0] = iterator.readFloat()
-                skinning.r1[1] = iterator.readFloat()
-                skinning.r1[2] = iterator.readFloat()
+                iterator.readVector3f(skinning.c)
+                iterator.readVector3f(skinning.r0)
+                iterator.readVector3f(skinning.r1)
                 vertex.skinning = skinning
             }
             4 -> {
@@ -638,30 +563,14 @@ object PmxParser : Parser<PmxFile> {
         bos.write(joint.type.code.toByte())
         bos.writeInt(joint.rigidBody1)
         bos.writeInt(joint.rigidBody2)
-        bos.writeFloat(joint.position[0])
-        bos.writeFloat(joint.position[1])
-        bos.writeFloat(joint.position[2])
-        bos.writeFloat(joint.orientation[0])
-        bos.writeFloat(joint.orientation[1])
-        bos.writeFloat(joint.orientation[2])
-        bos.writeFloat(joint.moveLimitationMin[0])
-        bos.writeFloat(joint.moveLimitationMin[1])
-        bos.writeFloat(joint.moveLimitationMin[2])
-        bos.writeFloat(joint.moveLimitationMax[0])
-        bos.writeFloat(joint.moveLimitationMax[1])
-        bos.writeFloat(joint.moveLimitationMax[2])
-        bos.writeFloat(joint.rotationLimitationMin[0])
-        bos.writeFloat(joint.rotationLimitationMin[1])
-        bos.writeFloat(joint.rotationLimitationMin[2])
-        bos.writeFloat(joint.rotationLimitationMax[0])
-        bos.writeFloat(joint.rotationLimitationMax[1])
-        bos.writeFloat(joint.rotationLimitationMax[2])
-        bos.writeFloat(joint.springTranslateFactor[0])
-        bos.writeFloat(joint.springTranslateFactor[1])
-        bos.writeFloat(joint.springTranslateFactor[2])
-        bos.writeFloat(joint.springRotateFactor[0])
-        bos.writeFloat(joint.springRotateFactor[1])
-        bos.writeFloat(joint.springRotateFactor[2])
+        bos.writeVector3f(joint.position)
+        bos.writeVector3f(joint.orientation)
+        bos.writeVector3f(joint.moveLimitationMin)
+        bos.writeVector3f(joint.moveLimitationMax)
+        bos.writeVector3f(joint.rotationLimitationMin)
+        bos.writeVector3f(joint.rotationLimitationMax)
+        bos.writeVector3f(joint.springTranslateFactor)
+        bos.writeVector3f(joint.springRotateFactor)
     }
 
     private fun writeRigidBody(bos: ByteArrayOutputStream, rigidBody: PmxFile.RigidBody, file: PmxFile) {
@@ -671,15 +580,9 @@ object PmxParser : Parser<PmxFile> {
         bos.write(rigidBody.group.toByte())
         bos.writeShort(rigidBody.mask)
         bos.write(rigidBody.shape.toByte())
-        bos.writeFloat(rigidBody.size[0])
-        bos.writeFloat(rigidBody.size[1])
-        bos.writeFloat(rigidBody.size[2])
-        bos.writeFloat(rigidBody.position[0])
-        bos.writeFloat(rigidBody.position[1])
-        bos.writeFloat(rigidBody.position[2])
-        bos.writeFloat(rigidBody.orientation[0])
-        bos.writeFloat(rigidBody.orientation[1])
-        bos.writeFloat(rigidBody.orientation[2])
+        bos.writeVector3f(rigidBody.size)
+        bos.writeVector3f(rigidBody.position)
+        bos.writeVector3f(rigidBody.orientation)
         bos.writeFloat(rigidBody.mass)
         bos.writeFloat(rigidBody.moveAttenuation)
         bos.writeFloat(rigidBody.rotationAttenuation)
@@ -713,58 +616,29 @@ object PmxParser : Parser<PmxFile> {
                 }
                 is PmxFile.Morph.VertexOffset -> {
                     bos.writeInt(offset.index)
-                    bos.writeFloat(offset.position[0])
-                    bos.writeFloat(offset.position[1])
-                    bos.writeFloat(offset.position[2])
+                    bos.writeVector3f(offset.position)
                 }
                 is PmxFile.Morph.BoneOffset -> {
                     bos.writeInt(offset.index)
-                    bos.writeFloat(offset.translation[0])
-                    bos.writeFloat(offset.translation[1])
-                    bos.writeFloat(offset.translation[2])
-                    bos.writeFloat(offset.rotation[0])
-                    bos.writeFloat(offset.rotation[1])
-                    bos.writeFloat(offset.rotation[2])
-                    bos.writeFloat(offset.rotation[3])
+                    bos.writeVector3f(offset.translation)
+                    bos.writeVector4f(offset.rotation)
                 }
                 is PmxFile.Morph.MaterialOffset -> {
                     bos.writeInt(offset.index)
                     bos.write(offset.operation.toByte())
-                    bos.writeFloat(offset.diffuse[0])
-                    bos.writeFloat(offset.diffuse[1])
-                    bos.writeFloat(offset.diffuse[2])
-                    bos.writeFloat(offset.diffuse[3])
-                    bos.writeFloat(offset.specular[0])
-                    bos.writeFloat(offset.specular[1])
-                    bos.writeFloat(offset.specular[2])
+                    bos.writeVector4f(offset.diffuse)
+                    bos.writeVector3f(offset.specular)
                     bos.writeFloat(offset.specularlity)
-                    bos.writeFloat(offset.ambient[0])
-                    bos.writeFloat(offset.ambient[1])
-                    bos.writeFloat(offset.ambient[2])
-                    bos.writeFloat(offset.edgeColor.red / 255f)
-                    bos.writeFloat(offset.edgeColor.green / 255f)
-                    bos.writeFloat(offset.edgeColor.blue / 255f)
-                    bos.writeFloat(offset.edgeColor.alpha / 255f)
+                    bos.writeVector3f(offset.ambient)
+                    bos.writeColor4f(offset.edgeColor)
                     bos.writeFloat(offset.edgeSize)
-                    bos.writeFloat(offset.textureColor.red / 255f)
-                    bos.writeFloat(offset.textureColor.green / 255f)
-                    bos.writeFloat(offset.textureColor.blue / 255f)
-                    bos.writeFloat(offset.textureColor.alpha / 255f)
-                    bos.writeFloat(offset.sphereTextureColor.red / 255f)
-                    bos.writeFloat(offset.sphereTextureColor.green / 255f)
-                    bos.writeFloat(offset.sphereTextureColor.blue / 255f)
-                    bos.writeFloat(offset.sphereTextureColor.alpha / 255f)
-                    bos.writeFloat(offset.toonTextureColor.red / 255f)
-                    bos.writeFloat(offset.toonTextureColor.green / 255f)
-                    bos.writeFloat(offset.toonTextureColor.blue / 255f)
-                    bos.writeFloat(offset.toonTextureColor.alpha / 255f)
+                    bos.writeColor4f(offset.textureColor)
+                    bos.writeColor4f(offset.sphereTextureColor)
+                    bos.writeColor4f(offset.toonTextureColor)
                 }
                 is PmxFile.Morph.UvOffset -> {
                     bos.writeInt(offset.index)
-                    bos.writeFloat(offset.offset[0])
-                    bos.writeFloat(offset.offset[1])
-                    bos.writeFloat(offset.offset[2])
-                    bos.writeFloat(offset.offset[3])
+                    bos.writeVector4f(offset.offset)
                 }
                 is PmxFile.Morph.FlipOffset -> {
                     bos.writeInt(offset.index)
@@ -773,12 +647,8 @@ object PmxParser : Parser<PmxFile> {
                 is PmxFile.Morph.ImpulseOffset -> {
                     bos.writeInt(offset.index)
                     bos.writeBool(offset.isLocal)
-                    bos.writeFloat(offset.velocity[0])
-                    bos.writeFloat(offset.velocity[1])
-                    bos.writeFloat(offset.velocity[2])
-                    bos.writeFloat(offset.angularTorgue[0])
-                    bos.writeFloat(offset.angularTorgue[1])
-                    bos.writeFloat(offset.angularTorgue[2])
+                    bos.writeVector3f(offset.velocity)
+                    bos.writeVector3f(offset.angularTorgue)
                 }
             }
         }
@@ -787,35 +657,25 @@ object PmxParser : Parser<PmxFile> {
     private fun writeBone(bos: ByteArrayOutputStream, bone: PmxFile.Bone, file: PmxFile) {
         writeString(bos, bone.name, true)
         writeString(bos, bone.englishName, true)
-        bos.writeFloat(bone.position[0])
-        bos.writeFloat(bone.position[1])
-        bos.writeFloat(bone.position[2])
+        bos.writeVector3f(bone.position)
         bos.writeInt(bone.parentIndex)
         bos.writeInt(bone.level)
         bos.writeShort(bone.flag)
         if (bone.flag.toInt() and 0x01 != 0x00) {
             bos.writeInt(bone.targetIndex)
         } else {
-            bos.writeFloat(bone.offset[0])
-            bos.writeFloat(bone.offset[1])
-            bos.writeFloat(bone.offset[2])
+            bos.writeVector3f(bone.offset)
         }
         if (bone.flag.toInt() and (0x0100 or 0x0200) != 0x00) {
             bos.writeInt(bone.grandParentIndex)
             bos.writeFloat(bone.grantWeight)
         }
         if (bone.flag.toInt() and 0x0400 != 0x00) {
-            bos.writeFloat(bone.fixedAxis[0])
-            bos.writeFloat(bone.fixedAxis[1])
-            bos.writeFloat(bone.fixedAxis[2])
+            bos.writeVector3f(bone.fixedAxis)
         }
         if (bone.flag.toInt() and 0x0800 != 0x00) {
-            bos.writeFloat(bone.localXAxis[0])
-            bos.writeFloat(bone.localXAxis[1])
-            bos.writeFloat(bone.localXAxis[2])
-            bos.writeFloat(bone.localZAxis[0])
-            bos.writeFloat(bone.localZAxis[1])
-            bos.writeFloat(bone.localZAxis[2])
+            bos.writeVector3f(bone.localXAxis)
+            bos.writeVector3f(bone.localZAxis)
         }
         if (bone.flag.toInt() and 0x2000 != 0x00) {
             bos.writeInt(bone.key)
@@ -829,12 +689,8 @@ object PmxParser : Parser<PmxFile> {
                 bos.writeInt(ikLink.linkTarget)
                 bos.write(ikLink.angleLock.toByte())
                 if(ikLink.angleLock == 1) {
-                    bos.writeFloat(ikLink.maxRadian[0])
-                    bos.writeFloat(ikLink.maxRadian[1])
-                    bos.writeFloat(ikLink.maxRadian[2])
-                    bos.writeFloat(ikLink.minRadian[0])
-                    bos.writeFloat(ikLink.minRadian[1])
-                    bos.writeFloat(ikLink.minRadian[2])
+                    bos.writeVector3f(ikLink.maxRadian)
+                    bos.writeVector3f(ikLink.minRadian)
                 }
             }
         }
@@ -843,22 +699,12 @@ object PmxParser : Parser<PmxFile> {
     private fun writeMaterial(bos: ByteArrayOutputStream, material: PmxFile.Material, file: PmxFile) {
         writeString(bos, material.name, true)
         writeString(bos, material.englishName, true)
-        bos.writeFloat(material.diffuse[0])
-        bos.writeFloat(material.diffuse[1])
-        bos.writeFloat(material.diffuse[2])
-        bos.writeFloat(material.diffuse[3])
-        bos.writeFloat(material.specular[0])
-        bos.writeFloat(material.specular[1])
-        bos.writeFloat(material.specular[2])
+        bos.writeVector4f(material.diffuse)
+        bos.writeVector3f(material.specular)
         bos.writeFloat(material.specularlity)
-        bos.writeFloat(material.ambient[0])
-        bos.writeFloat(material.ambient[1])
-        bos.writeFloat(material.ambient[2])
+        bos.writeVector3f(material.ambient)
         bos.write(material.flag.toByte())
-        bos.writeFloat(material.edgeColor.red / 255f)
-        bos.writeFloat(material.edgeColor.green / 255f)
-        bos.writeFloat(material.edgeColor.blue / 255f)
-        bos.writeFloat(material.edgeColor.alpha / 255f)
+        bos.writeColor4f(material.edgeColor)
         bos.writeFloat(material.edgeSize)
         bos.writeInt(material.diffuseTextureIndex)
         bos.writeInt(material.sphereTextureIndex)
@@ -870,12 +716,8 @@ object PmxParser : Parser<PmxFile> {
     }
 
     private fun writeVertex(bos: ByteArrayOutputStream, vertex: PmxFile.Vertex, file: PmxFile) {
-        bos.writeFloat(vertex.position[0])
-        bos.writeFloat(vertex.position[1])
-        bos.writeFloat(vertex.position[2])
-        bos.writeFloat(vertex.normal[0])
-        bos.writeFloat(vertex.normal[1])
-        bos.writeFloat(vertex.normal[2])
+        bos.writeVector3f(vertex.position)
+        bos.writeVector3f(vertex.normal)
         bos.writeFloat(vertex.uv[0])
         bos.writeFloat(vertex.uv[1])
         for(i in 0 until file.uv) {
@@ -909,15 +751,9 @@ object PmxParser : Parser<PmxFile> {
                 bos.writeInt(skinning.boneIndex1)
                 bos.writeInt(skinning.boneIndex2)
                 bos.writeFloat(skinning.weight)
-                bos.writeFloat(skinning.c[0])
-                bos.writeFloat(skinning.c[1])
-                bos.writeFloat(skinning.c[2])
-                bos.writeFloat(skinning.r0[0])
-                bos.writeFloat(skinning.r0[1])
-                bos.writeFloat(skinning.r0[2])
-                bos.writeFloat(skinning.r1[0])
-                bos.writeFloat(skinning.r1[1])
-                bos.writeFloat(skinning.r1[2])
+                bos.writeVector3f(skinning.c)
+                bos.writeVector3f(skinning.r0)
+                bos.writeVector3f(skinning.r1)
             }
             is PmxFile.Vertex.SkinningQDEF -> {
                 bos.writeInt(skinning.boneIndex1)

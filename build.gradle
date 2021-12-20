@@ -12,4 +12,6 @@ repositories {
 
 dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib"
+    // library used to process physics
+    implementation 'cz.advel.jbullet:jbullet:20101010-1'
 }
