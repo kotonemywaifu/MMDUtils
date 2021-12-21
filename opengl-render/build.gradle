@@ -1,0 +1,21 @@
+plugins {
+    id 'org.jetbrains.kotlin.jvm'
+    id 'java'
+}
+
+group 'me.liuli.mmd.opengl'
+version '1.0.0'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation "org.jetbrains.kotlin:kotlin-stdlib"
+
+    implementation rootProject
+
+    implementation 'org.lwjgl:lwjgl:3.3.0'
+    implementation 'org.lwjgl:lwjgl-opengl:3.3.0'
+    implementation 'org.lwjgl:lwjgl-glfw:3.3.0'
+}
