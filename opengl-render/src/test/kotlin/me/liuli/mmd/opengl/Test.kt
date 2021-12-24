@@ -1,6 +1,10 @@
 package me.liuli.mmd.opengl
 
 
+import me.liuli.mmd.file.parser.PmxParser
+import me.liuli.mmd.model.Model
+import me.liuli.mmd.model.pmx.PmxModel
+import me.liuli.mmd.opengl.texture.STBTextureLoader
 import org.lwjgl.glfw.Callbacks.glfwFreeCallbacks
 import org.lwjgl.glfw.GLFW.*
 import org.lwjgl.glfw.GLFWErrorCallback
@@ -8,6 +12,7 @@ import org.lwjgl.opengl.GL
 import org.lwjgl.opengl.GL11.*
 import org.lwjgl.system.MemoryStack.stackPush
 import org.lwjgl.system.MemoryUtil.NULL
+import java.io.File
 
 
 private var window: Long = 0
@@ -26,44 +31,64 @@ fun main(args: Array<String>) {
     glfwSetErrorCallback(null)?.free()
 }
 
-private fun onRender() {
-    glColor3f(1f, 0f, 0f)
-    glPushMatrix()
-    glTranslatef(400f, 300f, 0f)
-    glScalef(50f, 50f, 0f)
-    glRotatef((glfwGetTime() * 50f).toFloat(), 1f, 0f, 0f)
-    glRotatef((glfwGetTime() * 50f).toFloat(), 0f, 1f, 0f)
-    glLineWidth(1f)
-    glBegin(GL_LINE_STRIP)
+private fun loadModel(): Model {
+    var time = System.currentTimeMillis()
+    val jfile = File("test_files/pmx/test.pmx")
+    val pmxFile = PmxParser.read(jfile.readBytes())
+    pmxFile.dir = jfile.parentFile
+    println("Time cost(READ): ${System.currentTimeMillis() - time}ms")
 
-    glVertex3f(0.0f, 0.0f, 0.0f)
-    glVertex3f(1.0f, 0.0f, 0.0f)
-    glVertex3f(1.0f, 1.0f, 0.0f)
-    glVertex3f(0.0f, 1.0f, 0.0f)
-    glVertex3f(0.0f, 0.0f, 0.0f)
+    time = System.currentTimeMillis()
+    val model = PmxModel(pmxFile)
+    println("Time cost(SERIALIZATION): ${System.currentTimeMillis() - time}ms")
 
-    glEnd()
-    glPopMatrix()
+    return model
 }
 
 private fun loop() {
     GL.createCapabilities()
+
+    val model = loadModel()
+    val renderer = OpenGLRenderer()
+    renderer.textureLoader = STBTextureLoader()
+
+    val time = System.currentTimeMillis()
+    renderer.init(model)
+    println("Renderer initialized(${System.currentTimeMillis() - time}ms)")
+
     glClearColor(1f, 1f, 1f, 1f)
     while (!glfwWindowShouldClose(window)) {
         glViewport(0, 0, 800, 600)
         glClear(GL_COLOR_BUFFER_BIT)
 
         glMatrixMode(GL_PROJECTION)
-        glLoadIdentity();
-        glOrtho(0.0, 800.0, 600.0, 0.0, -1.0, 1.0)
+        glLoadIdentity()
+        glOrtho(0.0, 800.0, 600.0, 0.0, 0.0, 1.0)
         glMatrixMode(GL_MODELVIEW)
         glLoadIdentity()
 
-        onRender()
+        glPushMatrix()
+        glTranslatef(400f, 500f, 0f)
+        glScalef(20f, 20f, 20f)
+        // rotate the polygon
+        glRotatef(glfwGetTime().toFloat() * 50, 0f, 1f, 0f)
+        glRotatef(180f, 1f, 0f, 0f)
+
+        renderer.render()
+
+        glPopMatrix()
+
+        val i = glGetError()
+
+        if (i != 0) {
+            println("########## GL ERROR -> $i ##########")
+        }
 
         glfwSwapBuffers(window)
         glfwPollEvents()
     }
+
+    renderer.destroy()
 }
 
 private fun init() {

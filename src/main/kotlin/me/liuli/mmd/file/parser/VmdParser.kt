@@ -2,7 +2,6 @@ package me.liuli.mmd.file.parser
 
 import me.liuli.mmd.file.VmdFile
 import me.liuli.mmd.utils.*
-import java.awt.Color
 import java.io.ByteArrayOutputStream
 import java.io.IOException
 

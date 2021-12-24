@@ -49,7 +49,7 @@ fun testPmx() {
         println("soft bodies: ${file.softBodies.size}")
     }
 
-    val jfile = File("test_files/pmx/greyraven_xxi.pmx")
+    val jfile = File("test_files/pmx/test.pmx")
     var pmxFile = PmxParser.read(jfile.readBytes())
 
     summary(pmxFile)

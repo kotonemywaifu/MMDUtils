@@ -45,7 +45,7 @@ object PmxParser : Parser<PmxFile> {
         // read textures
         val textureCount = iterator.readInt()
         for(i in 0 until textureCount) {
-            file.textures.add(readString(iterator, setting.encoding))
+            file.textures.add(readString(iterator, setting.encoding).replace("\\", "/"))
         }
 
         // read materials
@@ -341,11 +341,14 @@ object PmxParser : Parser<PmxFile> {
         material.edgeSize = iterator.readFloat()
         material.diffuseTextureIndex = readInt(iterator, setting.textureIndexSize)
         material.sphereTextureIndex = readInt(iterator, setting.textureIndexSize)
-        material.sphereOpMode = iterator.next().toInt()
-        if(iterator.readBool()) {
-            material.toonTextureIndex = iterator.next().toInt()
+        val sphereMode = iterator.next().toInt()
+        material.sphereMode = PmxFile.Material.SphereMode.values().find { it.value == sphereMode } ?: throw IllegalArgumentException("unknown sphere mode: $sphereMode")
+        val toonMode = iterator.next().toInt()
+        material.toonMode = PmxFile.Material.ToonMode.values().find { it.value == toonMode } ?: throw IllegalArgumentException("unknown toon mode: $toonMode")
+        material.toonTextureIndex = if(material.toonMode == PmxFile.Material.ToonMode.COMMON) {
+            iterator.next().toInt()
         } else {
-            material.toonTextureIndex = readInt(iterator, setting.textureIndexSize)
+            readInt(iterator, setting.textureIndexSize)
         }
         material.memo = readString(iterator, setting.encoding)
         material.index = iterator.readInt()
@@ -358,13 +361,10 @@ object PmxParser : Parser<PmxFile> {
 
         iterator.readVector3f(vertex.position)
         iterator.readVector3f(vertex.normal)
-        vertex.uv[0] = iterator.readFloat()
-        vertex.uv[1] = iterator.readFloat()
+        vertex.uv.x = iterator.readFloat()
+        vertex.uv.y = iterator.readFloat()
         for(i in 0 until setting.uv) {
-            vertex.uva[i][0] = iterator.readFloat()
-            vertex.uva[i][1] = iterator.readFloat()
-            vertex.uva[i][2] = iterator.readFloat()
-            vertex.uva[i][3] = iterator.readFloat()
+            iterator.readVector4f(vertex.uva[i])
         }
 
         when(val skinningCode = iterator.next().toInt()) {
@@ -708,9 +708,13 @@ object PmxParser : Parser<PmxFile> {
         bos.writeFloat(material.edgeSize)
         bos.writeInt(material.diffuseTextureIndex)
         bos.writeInt(material.sphereTextureIndex)
-        bos.write(material.sphereOpMode.toByte())
-        bos.writeBool(false)
-        bos.writeInt(material.toonTextureIndex)
+        bos.write(material.sphereMode.value.toByte())
+        bos.write(material.toonMode.value.toByte())
+        if (material.toonMode == PmxFile.Material.ToonMode.SEPARATE) {
+            bos.writeInt(material.toonTextureIndex)
+        } else {
+            bos.write(material.toonTextureIndex.toByte())
+        }
         writeString(bos, material.memo, true)
         bos.writeInt(material.index)
     }
@@ -718,13 +722,10 @@ object PmxParser : Parser<PmxFile> {
     private fun writeVertex(bos: ByteArrayOutputStream, vertex: PmxFile.Vertex, file: PmxFile) {
         bos.writeVector3f(vertex.position)
         bos.writeVector3f(vertex.normal)
-        bos.writeFloat(vertex.uv[0])
-        bos.writeFloat(vertex.uv[1])
+        bos.writeFloat(vertex.uv.x)
+        bos.writeFloat(vertex.uv.y)
         for(i in 0 until file.uv) {
-            bos.writeFloat(vertex.uva[i][0])
-            bos.writeFloat(vertex.uva[i][1])
-            bos.writeFloat(vertex.uva[i][2])
-            bos.writeFloat(vertex.uva[i][3])
+            bos.writeVector4f(vertex.uva[i])
         }
         val skinning = vertex.skinning
         bos.write(skinning.code.toByte())

@@ -2,6 +2,8 @@ package me.liuli.mmd.file
 
 import me.liuli.mmd.file.parser.PmxParser
 import java.awt.Color
+import java.io.File
+import javax.vecmath.Vector2f
 import javax.vecmath.Vector3f
 import javax.vecmath.Vector4f
 
@@ -9,6 +11,7 @@ import javax.vecmath.Vector4f
  * PMX(Polygon Model eXtended) is a 3d model file format used in the program [MikuMikuDance](https://mikumikudance.jp/).
  */
 class PmxFile: InteractiveFile() {
+    var dir = File("./")
     var name = ""
     var englishName = ""
     var comment = ""
@@ -28,8 +31,8 @@ class PmxFile: InteractiveFile() {
     class Vertex {
         val position = Vector3f()
         val normal = Vector3f()
-        val uv = floatArrayOf(0f, 0f)
-        val uva = Array(4) { FloatArray(4) }
+        val uv = Vector2f()
+        val uva = Array(4) { Vector4f() }
         var skinning: SkinningType = SkinningBDEF1()
         var edge = 0f
 
@@ -96,10 +99,23 @@ class PmxFile: InteractiveFile() {
         var edgeSize = 0f
         var diffuseTextureIndex = 0
         var sphereTextureIndex = 0
-        var sphereOpMode = 0
+        var sphereMode = SphereMode.NONE
+        var toonMode = ToonMode.SEPARATE
         var toonTextureIndex = 0
         var memo = ""
         var index = 0
+
+        enum class SphereMode(val value: Int) {
+            NONE(0),
+            MUL(1),
+            ADD(2),
+            SUB_TEXTURE(3),
+        }
+
+        enum class ToonMode(val value: Int) {
+            SEPARATE(0),
+            COMMON(1)
+        }
     }
 
     class Bone {
