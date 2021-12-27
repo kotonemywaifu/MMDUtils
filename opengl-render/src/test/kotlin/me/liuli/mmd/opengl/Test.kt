@@ -56,9 +56,7 @@ private fun loop() {
     renderer.init(model)
     println("Renderer initialized(${System.currentTimeMillis() - time}ms)")
 
-    glEnable(GL_DEPTH_TEST);
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glEnable(GL_DEPTH_TEST)
 
     glClearColor(1f, 1f, 1f, 1f)
     while (!glfwWindowShouldClose(window)) {
@@ -73,7 +71,7 @@ private fun loop() {
         glClear(GL_DEPTH_BUFFER_BIT or GL_COLOR_BUFFER_BIT)
 
         glPushMatrix()
-        glScalef(0.15f, 0.15f, 0.15f)
+        glScalef(0.1f, 0.15f, 0.15f)
         glTranslatef(0f, -8f, 0f)
         // rotate the polygon
         glRotatef(glfwGetTime().toFloat() * 25, 0f, 1f, 0f)

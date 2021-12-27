@@ -4,13 +4,7 @@ import me.liuli.mmd.model.Model
 import me.liuli.mmd.opengl.texture.ITextureLoader
 import me.liuli.mmd.renderer.Renderer
 import org.lwjgl.opengl.GL11
-import org.lwjgl.opengl.GL13
-import org.lwjgl.opengl.GL15
 import java.io.File
-import java.nio.ByteBuffer
-import java.nio.FloatBuffer
-import java.nio.IntBuffer
-import kotlin.properties.Delegates
 
 /**
  * renderer mmd model with opengl

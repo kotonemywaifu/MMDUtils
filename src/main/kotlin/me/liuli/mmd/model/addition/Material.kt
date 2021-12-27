@@ -27,15 +27,4 @@ class Material {
         MUL,
         ADD
     }
-
-    enum class DrawMode(val value: Int) {
-        BOTH_FACE(0x01),
-        GROUND_SHADOW(0x02),
-        CAST_SELF_SHADOW(0x04),
-        RECEIVE_SELF_SHADOW(0x08),
-        DRAW_EDGE(0x10),
-        VERTEX_COLOR(0x20),
-        DRAW_POINT(0x40),
-        DRAW_LINE(0x80),
-    }
 }

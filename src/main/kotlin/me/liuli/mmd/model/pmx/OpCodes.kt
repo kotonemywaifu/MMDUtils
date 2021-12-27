@@ -1,0 +1,28 @@
+package me.liuli.mmd.model.pmx
+
+enum class PmxDrawMode(val value: Int) {
+    BOTH_FACE(0x01),
+    GROUND_SHADOW(0x02),
+    CAST_SELF_SHADOW(0x04),
+    RECEIVE_SELF_SHADOW(0x08),
+    DRAW_EDGE(0x10),
+    VERTEX_COLOR(0x20),
+    DRAW_POINT(0x40),
+    DRAW_LINE(0x80),
+}
+
+enum class PmxBoneFlags(val flag: Short) {
+    TARGET_SHOW_MODE(0x0001),
+    ALLOW_ROTATE(0x0002),
+    ALLOW_TRANSLATE(0x0004),
+    VISIBLE(0x0008),
+    ALLOW_CONTROL(0x0010),
+    IK(0x0020),
+    APPEND_LOCAL(0x0080),
+    APPEND_ROTATE(0x0100),
+    APPEND_TRANSLATE(0x0200),
+    FIXED_AXIS(0x0400),
+    LOCAL_AXIS(0x800),
+    DEFORM_AFTER_PHYSICS(0x1000),
+    DEFORM_OUTER_PARENT(0x2000),
+}

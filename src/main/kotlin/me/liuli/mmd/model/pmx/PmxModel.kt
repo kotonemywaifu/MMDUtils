@@ -4,14 +4,18 @@ import me.liuli.mmd.file.PmxFile
 import me.liuli.mmd.model.Model
 import me.liuli.mmd.model.addition.Material
 import me.liuli.mmd.model.addition.SubMesh
+import me.liuli.mmd.utils.mat4f
 import me.liuli.mmd.utils.multiply
+import me.liuli.mmd.utils.translate
 import java.io.File
 import javax.vecmath.Vector2f
 import javax.vecmath.Vector3f
+import kotlin.experimental.and
 
 class PmxModel(val file: PmxFile) : Model() {
 
     private val vertexBoneInfos = mutableListOf<VertexBoneInfo>()
+    private val nodes = mutableListOf<PmxNode>()
 
     init {
         for(vertex in file.vertices) {
@@ -97,11 +101,11 @@ class PmxModel(val file: PmxFile) : Model() {
             mat.specularPower = material.specularlity
             mat.specular = material.specular.clone() as Vector3f
             mat.ambient = material.ambient.clone() as Vector3f
-            mat.bothFace = material.flag and Material.DrawMode.BOTH_FACE.value != 0
-            mat.edgeFlag = material.flag and Material.DrawMode.DRAW_EDGE.value != 0
-            mat.groundShadow = material.flag and Material.DrawMode.GROUND_SHADOW.value != 0
-            mat.shadowCaster = material.flag and Material.DrawMode.CAST_SELF_SHADOW.value != 0
-            mat.shadowReceiver = material.flag and Material.DrawMode.RECEIVE_SELF_SHADOW.value != 0
+            mat.bothFace = material.flag and PmxDrawMode.BOTH_FACE.value != 0
+            mat.edgeFlag = material.flag and PmxDrawMode.DRAW_EDGE.value != 0
+            mat.groundShadow = material.flag and PmxDrawMode.GROUND_SHADOW.value != 0
+            mat.shadowCaster = material.flag and PmxDrawMode.CAST_SELF_SHADOW.value != 0
+            mat.shadowReceiver = material.flag and PmxDrawMode.RECEIVE_SELF_SHADOW.value != 0
             mat.edgeSize = material.edgeSize
             mat.edgeColor = material.edgeColor
 
@@ -129,5 +133,39 @@ class PmxModel(val file: PmxFile) : Model() {
             subMeshes.add(mesh)
             beginIndex += material.index
         }
+
+        // pre-index bone list
+        for(bone in file.bones) {
+            nodes.add(PmxNode().apply { name = bone.name })
+        }
+        val zeroShort = 0.toShort()
+        file.bones.forEachIndexed { index, bone ->
+            val node = nodes[index]
+            if (bone.parentIndex != -1) {
+                val parent = file.bones[bone.parentIndex]
+                nodes[bone.parentIndex].child = node
+                node.translate.x = bone.position.x - parent.position.x
+                node.translate.y = bone.position.y - parent.position.y
+                node.translate.z = bone.position.z - parent.position.z
+            } else {
+                node.translate.x = bone.position.x
+                node.translate.y = bone.position.y
+                node.translate.z = bone.position.z
+            }
+            node.translate.z *= -1
+            node.global = mat4f(1f).apply { translate(bone.position.x, bone.position.y, bone.position.z * -1f) }
+            node.calculateInverseInitTransform()
+            node.deformDepth = bone.level
+            node.deformAfterPhysics = (bone.flag and PmxBoneFlags.DEFORM_AFTER_PHYSICS.flag) != zeroShort
+            node.appendRotate = (bone.flag and PmxBoneFlags.APPEND_ROTATE.flag) != zeroShort
+            node.appendTranslate = (bone.flag and PmxBoneFlags.APPEND_TRANSLATE.flag) != zeroShort
+            if((node.appendRotate || node.appendTranslate) && (bone.grandParentIndex != -1)) {
+                node.appendLocal = (bone.flag and PmxBoneFlags.APPEND_LOCAL.flag) != zeroShort
+                node.appendNode = nodes[bone.grandParentIndex]
+                node.appendWeight = bone.grantWeight
+            }
+            node.saveInitialTRS()
+        }
+        nodes.sortBy { it.deformDepth }
     }
 }

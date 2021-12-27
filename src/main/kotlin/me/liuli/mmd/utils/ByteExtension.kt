@@ -113,19 +113,19 @@ fun ByteIterator.readVector4f(vector: Vector4f) {
  * read color3f from [ByteIterator]
  */
 fun ByteIterator.readColor3f(): Color {
-    return Color(this.readFloat().coerceAtLeast(1f).coerceAtLeast(0f)
-        , this.readFloat().coerceAtLeast(1f).coerceAtLeast(0f)
-        , this.readFloat().coerceAtLeast(1f).coerceAtLeast(0f))
+    return Color(this.readFloat().coerceAtLeast(0f).coerceAtMost(1f)
+        , this.readFloat().coerceAtLeast(0f).coerceAtMost(1f)
+        , this.readFloat().coerceAtLeast(0f).coerceAtMost(1f))
 }
 
 /**
  * read color4f from [ByteIterator]
  */
 fun ByteIterator.readColor4f(): Color {
-    return Color(this.readFloat().coerceAtLeast(1f).coerceAtLeast(0f)
-        , this.readFloat().coerceAtLeast(1f).coerceAtLeast(0f)
-        , this.readFloat().coerceAtLeast(1f).coerceAtLeast(0f)
-        , this.readFloat().coerceAtLeast(1f).coerceAtLeast(0f))
+    return Color(this.readFloat().coerceAtLeast(0f).coerceAtMost(1f)
+        , this.readFloat().coerceAtLeast(0f).coerceAtMost(1f)
+        , this.readFloat().coerceAtLeast(0f).coerceAtMost(1f)
+        , this.readFloat().coerceAtLeast(0f).coerceAtMost(1f))
 }
 
 /**
