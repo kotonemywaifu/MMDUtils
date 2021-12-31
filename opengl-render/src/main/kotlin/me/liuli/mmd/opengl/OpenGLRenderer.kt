@@ -4,6 +4,7 @@ import me.liuli.mmd.model.Model
 import me.liuli.mmd.opengl.texture.ITextureLoader
 import me.liuli.mmd.renderer.Renderer
 import org.lwjgl.opengl.GL11
+import java.awt.Color
 import java.io.File
 
 /**
@@ -39,11 +40,14 @@ class OpenGLRenderer : Renderer() {
         val originGlBlend = GL11.glIsEnabled(GL11.GL_BLEND)
         // get original GL_TEXTURE_2D enable state
         val originGlTexture2D = GL11.glIsEnabled(GL11.GL_TEXTURE_2D)
+        // get gl_cull_face mode
+        val originGlCullFaceMode = GL11.glGetInteger(GL11.GL_CULL_FACE_MODE)
 
         // enable GL_BLEND
         GL11.glEnable(GL11.GL_BLEND)
         GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA)
         GL11.glEnable(GL11.GL_TEXTURE_2D)
+        GL11.glCullFace(GL11.GL_FRONT)
 
         GL11.glColor4f(1f, 1f, 1f, 1f)
 
@@ -92,6 +96,8 @@ class OpenGLRenderer : Renderer() {
         if(!originGlTexture2D) {
             GL11.glDisable(GL11.GL_TEXTURE_2D)
         }
+        // restore original GL_CULL_FACE mode
+        GL11.glCullFace(originGlCullFaceMode)
     }
 
     override fun destroy() {

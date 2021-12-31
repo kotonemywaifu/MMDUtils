@@ -4,7 +4,7 @@ import java.awt.Color
 import java.io.File
 import javax.vecmath.Vector3f
 
-class Material {
+open class Material {
     var diffuse = Vector3f()
     var alpha = 0f
     var specular = Vector3f()

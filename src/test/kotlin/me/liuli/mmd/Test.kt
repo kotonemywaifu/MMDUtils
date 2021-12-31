@@ -7,8 +7,8 @@ import me.liuli.mmd.file.parser.VmdParser
 import java.io.File
 
 fun main(args: Array<String>) {
-//    testVmd()
-//    testPmx()
+    testVmd()
+    testPmx()
 //    testVpd()
 }
 

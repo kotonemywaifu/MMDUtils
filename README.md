@@ -16,4 +16,5 @@ And you can [convert PMD to PMX](https://learnmmd.com/http:/learnmmd.com/convert
 
 # Credits
 [MikuMikuFormats](https://github.com/oguna/MMDFormats) for read/write PMX and VMD files.  
-[Saba](https://github.com/benikabocha/saba) for render model in LWJGL.
+[Saba](https://github.com/benikabocha/saba) for render model in LWJGL.  
+[KaiMyEntity](https://github.com/kjkjkAIStudio/KAIMyEntity) for helping me code the LWJGL renderer.  

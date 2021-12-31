@@ -55,6 +55,10 @@ private fun loop() {
     val time = System.currentTimeMillis()
     renderer.init(model)
     println("Renderer initialized(${System.currentTimeMillis() - time}ms)")
+    println("Start rendering loop with model ${(model as PmxModel).file.name}...")
+
+    var glfwPrevTime = glfwGetTime()
+    var frameCount = 0
 
     glEnable(GL_DEPTH_TEST)
 
@@ -88,6 +92,14 @@ private fun loop() {
 
         glfwSwapBuffers(window)
         glfwPollEvents()
+
+        val currTime = glfwGetTime()
+        frameCount++
+        if (currTime - glfwPrevTime >= 1.0) {
+            glfwSetWindowTitle(window, "mmdu-lwjgl3 ${(frameCount / (currTime - glfwPrevTime)).toInt()}fps")
+            frameCount = 0
+            glfwPrevTime = currTime
+        }
     }
 
     renderer.destroy()
@@ -100,7 +112,7 @@ private fun init() {
     glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE)
     glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE)
 
-    window = glfwCreateWindow(800, 600, "MMDUtils", NULL, NULL)
+    window = glfwCreateWindow(800, 600, "mmdu-lwjgl3", NULL, NULL)
     if (window == NULL) throw RuntimeException("Failed to create the GLFW window")
 
     glfwSetKeyCallback(window) { window: Long, key: Int, _: Int, action: Int, _: Int ->

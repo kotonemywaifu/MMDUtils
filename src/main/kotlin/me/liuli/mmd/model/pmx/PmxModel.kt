@@ -2,8 +2,10 @@ package me.liuli.mmd.model.pmx
 
 import me.liuli.mmd.file.PmxFile
 import me.liuli.mmd.model.Model
+import me.liuli.mmd.model.addition.IKSolver
 import me.liuli.mmd.model.addition.Material
 import me.liuli.mmd.model.addition.SubMesh
+import me.liuli.mmd.utils.copyTo
 import me.liuli.mmd.utils.mat4f
 import me.liuli.mmd.utils.multiply
 import me.liuli.mmd.utils.translate
@@ -16,6 +18,7 @@ class PmxModel(val file: PmxFile) : Model() {
 
     private val vertexBoneInfos = mutableListOf<VertexBoneInfo>()
     private val nodes = mutableListOf<PmxNode>()
+    private val morphManager = PmxMorphManager()
 
     init {
         for(vertex in file.vertices) {
@@ -134,7 +137,7 @@ class PmxModel(val file: PmxFile) : Model() {
             beginIndex += material.index
         }
 
-        // pre-index bone list
+        // node
         for(bone in file.bones) {
             nodes.add(PmxNode().apply { name = bone.name })
         }
@@ -167,5 +170,114 @@ class PmxModel(val file: PmxFile) : Model() {
             node.saveInitialTRS()
         }
         nodes.sortBy { it.deformDepth }
+
+        // IK
+        file.bones.forEachIndexed { index, bone ->
+            if (bone.flag and PmxBoneFlags.IK.flag != zeroShort) {
+                val solver = IKSolver()
+                val node = nodes[index]
+                solver.node = node
+                node.solver = solver
+                solver.target = nodes[bone.ikTargetBoneIndex]
+
+                for(ikLink in bone.ikLinks) {
+                    val linkNode = nodes[ikLink.linkTarget]
+                    val chain = IKSolver.IKChain()
+                    chain.node = linkNode
+                    if(ikLink.angleLock == 0) {
+                        chain.enableAxisLimit = false
+                    } else {
+                        chain.enableAxisLimit = true
+                        ikLink.minRadian.copyTo(chain.limitMin)
+                        ikLink.maxRadian.copyTo(chain.limitMax)
+                    }
+                    solver.chains.add(chain)
+                    linkNode.enableIk = true
+                }
+                solver.iterateCount = bone.ikLoop
+                solver.limitAngle = bone.ikLoopAngleLimit
+            }
+        }
+
+        // morph
+        for (pmxMorph in file.morphs) {
+            val morph = PmxMorph()
+            morph.name = pmxMorph.name
+            when(pmxMorph.type) {
+                PmxFile.Morph.Type.VERTEX -> {
+                    morph.type = PmxMorph.MorphType.POSITION
+                    morph.dataIndex = morphManager.getSize(morph.type)
+                    val data = PmxMorph.PositionMorphData()
+                    for (offset in pmxMorph.offsets) {
+                        val newOffset = PmxFile.Morph.VertexOffset()
+                        val originalOffset = offset as PmxFile.Morph.VertexOffset
+                        newOffset.index = originalOffset.index
+                        originalOffset.position.copyTo(newOffset.position)
+                        newOffset.position.z *= -1
+                        data.positions.add(newOffset)
+                    }
+                    morphManager.add(data)
+                }
+                PmxFile.Morph.Type.UV -> {
+                    morph.type = PmxMorph.MorphType.UV
+                    morph.dataIndex = morphManager.getSize(morph.type)
+                    val data = PmxMorph.UVMorphData()
+                    for (offset in pmxMorph.offsets) {
+                        data.uvs.add(offset as PmxFile.Morph.UvOffset)
+                    }
+                    morphManager.add(data)
+                }
+                PmxFile.Morph.Type.MATERIAL -> {
+                    morph.type = PmxMorph.MorphType.MATERIAL
+                    morph.dataIndex = morphManager.getSize(morph.type)
+                    val data = PmxMorph.MaterialMorphData()
+                    for (offset in pmxMorph.offsets) {
+                        data.materials.add(offset as PmxFile.Morph.MaterialOffset)
+                    }
+                    morphManager.add(data)
+                }
+                PmxFile.Morph.Type.GROUP -> {
+                    morph.type = PmxMorph.MorphType.GROUP
+                    morph.dataIndex = morphManager.getSize(morph.type)
+                    val data = PmxMorph.GroupMorphData()
+                    for (offset in pmxMorph.offsets) {
+                        data.groups.add(offset as PmxFile.Morph.GroupOffset)
+                    }
+                    morphManager.add(data)
+                }
+                PmxFile.Morph.Type.BONE -> {
+                    morph.type = PmxMorph.MorphType.BONE
+                    morph.dataIndex = morphManager.getSize(morph.type)
+                    val data = PmxMorph.BoneMorphData()
+                    for (offset in pmxMorph.offsets) {
+                        val boneOffset = offset as PmxFile.Morph.BoneOffset
+                        val boneMorph = PmxMorph.BoneMorphData.BoneMorph()
+                        boneMorph.node = nodes[boneOffset.index]
+                        boneOffset.translation.copyTo(boneMorph.position)
+                        boneMorph.position.z *= -1
+                        boneOffset.rotation.copyTo(boneMorph.rotation)
+                        boneMorph.rotation.z *= -1
+                        data.bones.add(boneMorph)
+                    }
+                    morphManager.add(data)
+                }
+                else -> continue // morph type is not supported
+            }
+            morphManager.morphs.add(morph)
+        }
+        // Check whether Group Morph infinite loop.
+        for (morph in morphManager.morphs) {
+            if (morph.type == PmxMorph.MorphType.GROUP) {
+                val groupMorphStack = mutableListOf<Int>()
+                val groupMorphData = morphManager[morph] as PmxMorph.GroupMorphData
+                for (groupMorph in groupMorphData.groups) {
+                    if (groupMorphStack.contains(groupMorph.index)) {
+                        groupMorph.index = -1
+                    } else {
+                        groupMorphStack.add(groupMorph.index)
+                    }
+                }
+            }
+        }
     }
 }

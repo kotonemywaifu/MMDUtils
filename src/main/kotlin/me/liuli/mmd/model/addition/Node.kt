@@ -19,6 +19,7 @@ open class Node {
         private set
     var initScale = Vector3f()
         private set
+    var enableIk = false
 
     fun calculateInverseInitTransform() {
         inverseInit = (global.clone() as Matrix4f).inverse()

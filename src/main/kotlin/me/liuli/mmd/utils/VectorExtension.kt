@@ -79,3 +79,16 @@ fun mat4f(value: Float): Matrix4f {
         m33 = value
     }
 }
+
+fun Vector3f.copyTo(vector3f: Vector3f) {
+    vector3f.x = x
+    vector3f.y = y
+    vector3f.z = z
+}
+
+fun Vector4f.copyTo(vector4f: Vector4f) {
+    vector4f.x = x
+    vector4f.y = y
+    vector4f.z = z
+    vector4f.w = w
+}
