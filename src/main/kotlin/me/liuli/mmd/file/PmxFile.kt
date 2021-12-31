@@ -252,7 +252,7 @@ class PmxFile: InteractiveFile() {
         var targetBone = 0
         var group = 0
         var mask: Short = 0
-        var shape = 0
+        var shape = Shape.BOX
         var size = Vector3f()
         var position = Vector3f()
         var orientation = Vector3f()
@@ -261,7 +261,19 @@ class PmxFile: InteractiveFile() {
         var rotationAttenuation = 0f
         var repulsion = 0f
         var friction = 0f
-        var type = 0
+        var op = Operation.STATIC
+
+        enum class Shape(val code: Int) {
+            SPHERE(0),
+            BOX(1),
+            CAPSULE(2)
+        }
+
+        enum class Operation(val code: Int) {
+            STATIC(0),
+            DYNAMIC(1),
+            DYNAMIC_BONE(2),
+        }
     }
 
     class Joint {

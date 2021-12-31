@@ -168,7 +168,8 @@ object PmxParser : Parser<PmxFile> {
         rigidBody.targetBone = readInt(iterator, setting.boneIndexSize)
         rigidBody.group = iterator.next().toInt()
         rigidBody.mask = iterator.readShort()
-        rigidBody.shape = iterator.next().toInt()
+        val shape = iterator.next().toInt()
+        rigidBody.shape = PmxFile.RigidBody.Shape.values().find { it.code == shape } ?: throw IllegalArgumentException("Invalid rigid body shape: $shape")
         iterator.readVector3f(rigidBody.size)
         iterator.readVector3f(rigidBody.position)
         iterator.readVector3f(rigidBody.orientation)
@@ -177,7 +178,8 @@ object PmxParser : Parser<PmxFile> {
         rigidBody.rotationAttenuation = iterator.readFloat()
         rigidBody.repulsion = iterator.readFloat()
         rigidBody.friction = iterator.readFloat()
-        rigidBody.type = iterator.next().toInt()
+        val op = iterator.next().toInt()
+        rigidBody.op = PmxFile.RigidBody.Operation.values().find { it.code == op } ?: throw IllegalArgumentException("Invalid rigid body operation: $op")
 
         return rigidBody
     }
@@ -579,7 +581,7 @@ object PmxParser : Parser<PmxFile> {
         bos.writeInt(rigidBody.targetBone)
         bos.write(rigidBody.group.toByte())
         bos.writeShort(rigidBody.mask)
-        bos.write(rigidBody.shape.toByte())
+        bos.write(rigidBody.shape.code.toByte())
         bos.writeVector3f(rigidBody.size)
         bos.writeVector3f(rigidBody.position)
         bos.writeVector3f(rigidBody.orientation)
@@ -588,7 +590,7 @@ object PmxParser : Parser<PmxFile> {
         bos.writeFloat(rigidBody.rotationAttenuation)
         bos.writeFloat(rigidBody.repulsion)
         bos.writeFloat(rigidBody.friction)
-        bos.write(rigidBody.type.toByte())
+        bos.write(rigidBody.op.code.toByte())
     }
 
     private fun writeDisplayFrame(bos: ByteArrayOutputStream, displayFrame: PmxFile.DisplayFrame, file: PmxFile) {

@@ -19,4 +19,6 @@ abstract class Model {
 
     open val materials = mutableListOf<Material>()
     open val subMeshes = mutableListOf<SubMesh>()
+
+    abstract fun resetPhysics()
 }

@@ -1,15 +1,20 @@
 package me.liuli.mmd.model.pmx
 
+import com.bulletphysics.collision.dispatch.CollisionFlags
+import com.bulletphysics.collision.shapes.BoxShape
+import com.bulletphysics.collision.shapes.CapsuleShape
+import com.bulletphysics.collision.shapes.SphereShape
+import com.bulletphysics.dynamics.RigidBody
+import com.bulletphysics.dynamics.RigidBodyConstructionInfo
+import com.bulletphysics.dynamics.constraintsolver.Generic6DofConstraint
+import com.bulletphysics.linearmath.Transform
 import me.liuli.mmd.file.PmxFile
 import me.liuli.mmd.model.Model
-import me.liuli.mmd.model.addition.IKSolver
-import me.liuli.mmd.model.addition.Material
-import me.liuli.mmd.model.addition.SubMesh
-import me.liuli.mmd.utils.copyTo
-import me.liuli.mmd.utils.mat4f
-import me.liuli.mmd.utils.multiply
-import me.liuli.mmd.utils.translate
+import me.liuli.mmd.model.addition.*
+import me.liuli.mmd.model.addition.physics.*
+import me.liuli.mmd.utils.*
 import java.io.File
+import javax.vecmath.Matrix4f
 import javax.vecmath.Vector2f
 import javax.vecmath.Vector3f
 import kotlin.experimental.and
@@ -19,6 +24,7 @@ class PmxModel(val file: PmxFile) : Model() {
     private val vertexBoneInfos = mutableListOf<VertexBoneInfo>()
     private val nodes = mutableListOf<PmxNode>()
     private val morphManager = PmxMorphManager()
+    private val physicsManager = PhysicsManager()
 
     init {
         for(vertex in file.vertices) {
@@ -145,11 +151,11 @@ class PmxModel(val file: PmxFile) : Model() {
         file.bones.forEachIndexed { index, bone ->
             val node = nodes[index]
             if (bone.parentIndex != -1) {
-                val parent = file.bones[bone.parentIndex]
-                nodes[bone.parentIndex].child = node
-                node.translate.x = bone.position.x - parent.position.x
-                node.translate.y = bone.position.y - parent.position.y
-                node.translate.z = bone.position.z - parent.position.z
+                val parentBone = file.bones[bone.parentIndex]
+                nodes[bone.parentIndex].addChild(node)
+                node.translate.x = bone.position.x - parentBone.position.x
+                node.translate.y = bone.position.y - parentBone.position.y
+                node.translate.z = bone.position.z - parentBone.position.z
             } else {
                 node.translate.x = bone.position.x
                 node.translate.y = bone.position.y
@@ -188,8 +194,8 @@ class PmxModel(val file: PmxFile) : Model() {
                         chain.enableAxisLimit = false
                     } else {
                         chain.enableAxisLimit = true
-                        ikLink.minRadian.copyTo(chain.limitMin)
-                        ikLink.maxRadian.copyTo(chain.limitMax)
+                        ikLink.minRadian.set(chain.limitMin)
+                        ikLink.maxRadian.set(chain.limitMax)
                     }
                     solver.chains.add(chain)
                     linkNode.enableIk = true
@@ -212,7 +218,7 @@ class PmxModel(val file: PmxFile) : Model() {
                         val newOffset = PmxFile.Morph.VertexOffset()
                         val originalOffset = offset as PmxFile.Morph.VertexOffset
                         newOffset.index = originalOffset.index
-                        originalOffset.position.copyTo(newOffset.position)
+                        originalOffset.position.set(newOffset.position)
                         newOffset.position.z *= -1
                         data.positions.add(newOffset)
                     }
@@ -253,9 +259,9 @@ class PmxModel(val file: PmxFile) : Model() {
                         val boneOffset = offset as PmxFile.Morph.BoneOffset
                         val boneMorph = PmxMorph.BoneMorphData.BoneMorph()
                         boneMorph.node = nodes[boneOffset.index]
-                        boneOffset.translation.copyTo(boneMorph.position)
+                        boneOffset.translation.set(boneMorph.position)
                         boneMorph.position.z *= -1
-                        boneOffset.rotation.copyTo(boneMorph.rotation)
+                        boneOffset.rotation.set(boneMorph.rotation)
                         boneMorph.rotation.z *= -1
                         data.bones.add(boneMorph)
                     }
@@ -278,6 +284,120 @@ class PmxModel(val file: PmxFile) : Model() {
                     }
                 }
             }
+        }
+
+        // Physics
+        for (pmxRigidBody in file.rigidBodies) {
+            val node = if(pmxRigidBody.targetBone != -1) { nodes[pmxRigidBody.targetBone] } else { null }
+            val shape = when (pmxRigidBody.shape) {
+                PmxFile.RigidBody.Shape.SPHERE -> SphereShape(pmxRigidBody.size.x)
+                PmxFile.RigidBody.Shape.BOX -> BoxShape(pmxRigidBody.size)
+                PmxFile.RigidBody.Shape.CAPSULE -> CapsuleShape(pmxRigidBody.size.x, pmxRigidBody.size.y)
+            }
+
+            val inertia = Vector3f()
+            val mass = if(pmxRigidBody.op == PmxFile.RigidBody.Operation.STATIC) { 0f } else { pmxRigidBody.mass }
+            if (mass != 0f) {
+                shape.calculateLocalInertia(mass, inertia)
+            }
+
+            val rx = mat4f(1f).rotate(pmxRigidBody.orientation.x, Vector3f(1f, 0f, 0f))
+            val ry = mat4f(1f).rotate(pmxRigidBody.orientation.y, Vector3f(0f, 1f, 0f))
+            val rz = mat4f(1f).rotate(pmxRigidBody.orientation.z, Vector3f(0f, 0f, 1f))
+            val rotMat = rx.apply { mul(ry) }.apply { mul(rz) }
+            val transMat = mat4f(1f).translate(pmxRigidBody.position)
+            val rbMat = transMat.apply { mul(rotMat) }
+
+            val kinematicNode = if(node != null) {
+                node
+            } else {
+                nodes.first()
+            }
+            val offsetMat = (kinematicNode.global.clone() as Matrix4f).inverse().apply { mul(rbMat) }
+            var activeMotionState: MMDMotionState? = null
+            val kinematicMotionState = KinematicMotionState(kinematicNode, offsetMat)
+            val motionState = if (pmxRigidBody.op == PmxFile.RigidBody.Operation.STATIC) {
+                kinematicMotionState
+            } else {
+                if (node != null) {
+                    if (pmxRigidBody.op == PmxFile.RigidBody.Operation.DYNAMIC) {
+                        activeMotionState = DynamicMotionState(kinematicNode, offsetMat)
+                        activeMotionState
+                    } else {
+                        activeMotionState = DynamicAndBoneMergeMotionState(kinematicNode, offsetMat)
+                        activeMotionState
+                    }
+                } else {
+                    activeMotionState = DefaultMotionState(offsetMat)
+                    activeMotionState
+                }
+            }
+
+            val rbInfo = RigidBodyConstructionInfo(mass, motionState, shape, inertia)
+            rbInfo.linearDamping = pmxRigidBody.moveAttenuation
+            rbInfo.angularDamping = pmxRigidBody.rotationAttenuation
+            rbInfo.restitution = pmxRigidBody.repulsion
+            rbInfo.friction = pmxRigidBody.friction
+            rbInfo.additionalDamping = true
+
+            val btRigidBody = RigidBody(rbInfo)
+            btRigidBody.setSleepingThresholds(0.1f, Math.toRadians(0.1).toFloat())
+            btRigidBody.activationState = RigidBody.DISABLE_DEACTIVATION
+            if(pmxRigidBody.op == PmxFile.RigidBody.Operation.DYNAMIC) {
+                btRigidBody.collisionFlags = btRigidBody.collisionFlags or CollisionFlags.KINEMATIC_OBJECT
+            }
+            physicsManager.addRigidBody(MMDRigidBody(btRigidBody, activeMotionState, kinematicMotionState,
+                MMDRigidBody.Type.values()[pmxRigidBody.op.code],
+                pmxRigidBody.group, pmxRigidBody.mask, node, pmxRigidBody.name))
+        }
+        for(pmxJoint in file.joints) {
+            if(pmxJoint.rigidBody1 == -1 || pmxJoint.rigidBody2 == -1 || pmxJoint.rigidBody1 == pmxJoint.rigidBody2) {
+                continue
+            }
+            val rb1 = physicsManager.mmdRigidBodies[pmxJoint.rigidBody1].btRigidBody
+            val rb2 = physicsManager.mmdRigidBodies[pmxJoint.rigidBody2].btRigidBody
+            val transform = Transform()
+            transform.setIdentity()
+            transform.origin.set(pmxJoint.position)
+            transform.basis.set(setEulerZYX(pmxJoint.orientation))
+            val constraint = Generic6DofConstraint(rb1, rb2,
+                Transform(rb1.getWorldTransform(Transform())).apply { inverse() }.apply{ mul(transform) },
+                Transform(rb2.getWorldTransform(Transform())).apply { inverse() }.apply { mul(transform) }, true)
+            constraint.setLinearLowerLimit(pmxJoint.moveLimitationMin)
+            constraint.setLinearUpperLimit(pmxJoint.moveLimitationMax)
+            constraint.setAngularLowerLimit(pmxJoint.rotationLimitationMin)
+            constraint.setAngularUpperLimit(pmxJoint.rotationLimitationMax)
+            // TODO: spring calculation if i found a bullet-physics port supporting it
+            physicsManager.addJoint(constraint)
+        }
+
+        resetPhysics()
+    }
+
+    override fun resetPhysics() {
+        physicsManager.mmdRigidBodies.forEach { rb ->
+            rb.setActivation(false)
+            rb.resetTransform()
+        }
+
+        physicsManager.update(1f / 60f)
+
+        physicsManager.mmdRigidBodies.forEach { rb ->
+            rb.reflectGlobalTransform()
+        }
+
+        physicsManager.mmdRigidBodies.forEach { rb ->
+            rb.calcLocalTransform()
+        }
+
+        nodes.forEach { node ->
+            if(node.parent == null) {
+                node.updateGlobalTransform()
+            }
+        }
+
+        physicsManager.mmdRigidBodies.forEach { rb ->
+            rb.reset(physicsManager)
         }
     }
 }

@@ -1,9 +1,8 @@
 package me.liuli.mmd.utils
 
-import javax.vecmath.Matrix4f
-import javax.vecmath.Vector2f
-import javax.vecmath.Vector3f
-import javax.vecmath.Vector4f
+import javax.vecmath.*
+import kotlin.math.cos
+import kotlin.math.sin
 
 fun Vector2f.multiply(x: Float, y: Float): Vector2f {
     this.x *= x
@@ -71,6 +70,65 @@ fun Matrix4f.inverse(): Matrix4f {
     return this
 }
 
+fun Matrix4f.rotate(angle: Float, vector3f: Vector3f): Matrix4f {
+    val s = sin(angle)
+    val c = cos(angle)
+    val C = 1 - c
+    val xx = vector3f.x * vector3f.x
+    val xy = vector3f.x * vector3f.y
+    val xz = vector3f.x * vector3f.z
+    val yy = vector3f.y * vector3f.y
+    val yz = vector3f.y * vector3f.z
+    val zz = vector3f.z * vector3f.z
+    val rm00 = xx * C + c
+    val rm01 = xy * C + vector3f.z * s
+    val rm02 = xz * C - vector3f.y * s
+    val rm10 = xy * C - vector3f.z * s
+    val rm11 = yy * C + c
+    val rm12 = yz * C + vector3f.x * s
+    val rm20 = xz * C + vector3f.y * s
+    val rm21 = yz * C - vector3f.x * s
+    val rm22 = zz * C + c
+    m00 = m00 * rm00 + m10 * rm01 + m20 * rm02
+    m01 = m01 * rm00 + m11 * rm01 + m21 * rm02
+    m02 = m02 * rm00 + m12 * rm01 + m22 * rm02
+    m03 = m03 * rm00 + m13 * rm01 + m23 * rm02
+    m10 = m00 * rm10 + m10 * rm11 + m20 * rm12
+    m11 = m01 * rm10 + m11 * rm11 + m21 * rm12
+    m12 = m02 * rm10 + m12 * rm11 + m22 * rm12
+    m13 = m03 * rm10 + m13 * rm11 + m23 * rm12
+    m20 = m00 * rm20 + m10 * rm21 + m20 * rm22
+    m21 = m01 * rm20 + m11 * rm21 + m21 * rm22
+    m22 = m02 * rm20 + m12 * rm21 + m22 * rm22
+    m23 = m03 * rm20 + m13 * rm21 + m23 * rm22
+
+    return this
+}
+
+fun Matrix4f.scale(factor: Float): Matrix4f {
+    return scale(factor, factor, factor)
+}
+
+fun Matrix4f.scale(vector3f: Vector3f): Matrix4f {
+    return scale(vector3f.x, vector3f.y, vector3f.z)
+}
+
+fun Matrix4f.scale(x: Float, y: Float, z: Float): Matrix4f {
+    m00 *= x
+    m01 *= x
+    m02 *= x
+    m03 *= x
+    m10 *= y
+    m11 *= y
+    m12 *= y
+    m13 *= y
+    m20 *= z
+    m21 *= z
+    m22 *= z
+    m23 *= z
+    return this
+}
+
 fun mat4f(value: Float): Matrix4f {
     return Matrix4f().apply {
         m00 = value
@@ -80,15 +138,25 @@ fun mat4f(value: Float): Matrix4f {
     }
 }
 
-fun Vector3f.copyTo(vector3f: Vector3f) {
-    vector3f.x = x
-    vector3f.y = y
-    vector3f.z = z
+fun setEulerZYX(vector3f: Vector3f): Matrix3f {
+    return setEulerZYX(vector3f.x, vector3f.y, vector3f.z)
 }
 
-fun Vector4f.copyTo(vector4f: Vector4f) {
-    vector4f.x = x
-    vector4f.y = y
-    vector4f.z = z
-    vector4f.w = w
+/**
+ * from bullet3 https://github.com/bulletphysics/bullet3/blob/101c98cfb8fd297ebae6007fd10619f74c4a9748/src/LinearMath/btMatrix3x3.h
+ */
+fun setEulerZYX(x: Float, y: Float, z: Float): Matrix3f {
+    val ci = cos(x)
+    val cj = cos(y)
+    val ch = cos(z)
+    val si = sin(x)
+    val sj = sin(y)
+    val sh = sin(z)
+    val cc = ci * ch
+    val cs = ci * sh
+    val sc = si * ch
+    val ss = si * sh
+    return Matrix3f(cj * ch, sj * sc - cs, sj * cc + ss,
+        cj * sh, sj * ss + cc, sj * cs - sc,
+        -sj, cj * si, cj * ci)
 }
