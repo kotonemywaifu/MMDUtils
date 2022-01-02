@@ -1,7 +1,6 @@
 package me.liuli.mmd.model
 
-import me.liuli.mmd.model.addition.Material
-import me.liuli.mmd.model.addition.SubMesh
+import me.liuli.mmd.model.addition.*
 import javax.vecmath.Vector2f
 import javax.vecmath.Vector3f
 
@@ -21,4 +20,33 @@ abstract class Model {
     open val subMeshes = mutableListOf<SubMesh>()
 
     abstract fun resetPhysics()
+
+    abstract fun initAnimation()
+    abstract fun beginAnimation()
+    abstract fun endAnimation()
+
+    open fun saveBaseAnimation() {
+        nodes.forEach { it.saveBaseAnimation() }
+        morphs.forEach { it.saveBaseAnimation() }
+        ikSolvers.forEach { it.saveBaseAnimation() }
+    }
+
+    open fun loadBaseAnimation() {
+        nodes.forEach { it.loadBaseAnimation() }
+        morphs.forEach { it.loadBaseAnimation() }
+        ikSolvers.forEach { it.loadBaseAnimation() }
+    }
+
+    open fun clearBaseAnimation() {
+        nodes.forEach { it.clearBaseAnimation() }
+        morphs.forEach { it.clearBaseAnimation() }
+        ikSolvers.forEach { it.clearBaseAnimation() }
+    }
+
+    abstract fun update()
+//    abstract fun updateAllAnimation()
+
+    protected abstract val nodes: List<Node>
+    protected abstract val morphs: List<Morph>
+    protected abstract val ikSolvers: List<IKSolver>
 }

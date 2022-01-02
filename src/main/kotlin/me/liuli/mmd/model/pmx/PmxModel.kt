@@ -17,20 +17,28 @@ import java.io.File
 import javax.vecmath.Matrix4f
 import javax.vecmath.Vector2f
 import javax.vecmath.Vector3f
+import javax.vecmath.Vector4f
 import kotlin.experimental.and
 
 class PmxModel(val file: PmxFile) : Model() {
 
     private val vertexBoneInfos = mutableListOf<VertexBoneInfo>()
-    private val nodes = mutableListOf<PmxNode>()
+    override val nodes = mutableListOf<PmxNode>()
+    override val ikSolvers = mutableListOf<IKSolver>()
     private val morphManager = PmxMorphManager()
     private val physicsManager = PhysicsManager()
 
+    override val morphs: List<Morph>
+        get() = morphManager.morphs
+
+    private val morphPositions = mutableListOf<Vector3f>()
+    private val morphUVs = mutableListOf<Vector4f>()
+
     init {
         for(vertex in file.vertices) {
-            positions.add((vertex.position.clone() as Vector3f).multiply(1f, 1f, -1f))
-            normals.add((vertex.normal.clone() as Vector3f).multiply(1f, 1f, -1f))
-            uvs.add((vertex.uv.clone() as Vector2f)/*.also { it.y = 1f - it.y }*/)
+            positions.add(Vector3f(vertex.position).mul(1f, 1f, -1f))
+            normals.add(Vector3f(vertex.normal).mul(1f, 1f, -1f))
+            uvs.add(Vector2f(vertex.uv)/*.also { it.y = 1f - it.y }*/)
             val skinning = vertex.skinning // use kotlin smartcast
             vertexBoneInfos.add(if(skinning is PmxFile.Vertex.SkinningSDEF) {
                 val sbi = SDEFVertexBoneInfo()
@@ -43,8 +51,8 @@ class PmxModel(val file: PmxFile) : Model() {
                 sbi.c.x = skinning.c.x
                 sbi.c.y = skinning.c.y
                 sbi.c.z = skinning.c.z * -1
-                val r0 = (skinning.r0.clone() as Vector3f).multiply(1f, 1f, -1f)
-                val r1 = (skinning.r1.clone() as Vector3f).multiply(1f, 1f, -1f)
+                val r0 = Vector3f(skinning.r0).mul(1f, 1f, -1f)
+                val r1 = Vector3f(skinning.r1).mul(1f, 1f, -1f)
                 val rw = Vector3f(r0.x * skinning.weight + r1.x * w1, r0.y * skinning.weight + r1.y * w1, r0.z * skinning.weight + r1.z * w1)
                 r0.add(sbi.c)
                 r0.sub(rw)
@@ -108,8 +116,8 @@ class PmxModel(val file: PmxFile) : Model() {
             mat.diffuse = Vector3f(material.diffuse.x, material.diffuse.y, material.diffuse.z)
             mat.alpha = material.diffuse.w
             mat.specularPower = material.specularlity
-            mat.specular = material.specular.clone() as Vector3f
-            mat.ambient = material.ambient.clone() as Vector3f
+            mat.specular = Vector3f(material.specular)
+            mat.ambient = Vector3f(material.ambient)
             mat.bothFace = material.flag and PmxDrawMode.BOTH_FACE.value != 0
             mat.edgeFlag = material.flag and PmxDrawMode.DRAW_EDGE.value != 0
             mat.groundShadow = material.flag and PmxDrawMode.GROUND_SHADOW.value != 0
@@ -145,14 +153,14 @@ class PmxModel(val file: PmxFile) : Model() {
 
         // node
         for(bone in file.bones) {
-            nodes.add(PmxNode().apply { name = bone.name })
+            this.nodes.add(PmxNode().apply { name = bone.name })
         }
         val zeroShort = 0.toShort()
         file.bones.forEachIndexed { index, bone ->
-            val node = nodes[index]
+            val node = this.nodes[index]
             if (bone.parentIndex != -1) {
                 val parentBone = file.bones[bone.parentIndex]
-                nodes[bone.parentIndex].addChild(node)
+                this.nodes[bone.parentIndex].addChild(node)
                 node.translate.x = bone.position.x - parentBone.position.x
                 node.translate.y = bone.position.y - parentBone.position.y
                 node.translate.z = bone.position.z - parentBone.position.z
@@ -166,28 +174,28 @@ class PmxModel(val file: PmxFile) : Model() {
             node.calculateInverseInitTransform()
             node.deformDepth = bone.level
             node.deformAfterPhysics = (bone.flag and PmxBoneFlags.DEFORM_AFTER_PHYSICS.flag) != zeroShort
-            node.appendRotate = (bone.flag and PmxBoneFlags.APPEND_ROTATE.flag) != zeroShort
-            node.appendTranslate = (bone.flag and PmxBoneFlags.APPEND_TRANSLATE.flag) != zeroShort
-            if((node.appendRotate || node.appendTranslate) && (bone.grandParentIndex != -1)) {
-                node.appendLocal = (bone.flag and PmxBoneFlags.APPEND_LOCAL.flag) != zeroShort
-                node.appendNode = nodes[bone.grandParentIndex]
+            node.isAppendRotate = (bone.flag and PmxBoneFlags.APPEND_ROTATE.flag) != zeroShort
+            node.isAppendTranslate = (bone.flag and PmxBoneFlags.APPEND_TRANSLATE.flag) != zeroShort
+            if((node.isAppendRotate || node.isAppendTranslate) && (bone.grandParentIndex != -1)) {
+                node.isAppendLocal = (bone.flag and PmxBoneFlags.APPEND_LOCAL.flag) != zeroShort
+                node.appendNode = this.nodes[bone.grandParentIndex]
                 node.appendWeight = bone.grantWeight
             }
             node.saveInitialTRS()
         }
-        nodes.sortBy { it.deformDepth }
+        this.nodes.sortBy { it.deformDepth }
 
         // IK
         file.bones.forEachIndexed { index, bone ->
             if (bone.flag and PmxBoneFlags.IK.flag != zeroShort) {
                 val solver = IKSolver()
-                val node = nodes[index]
+                val node = this.nodes[index]
                 solver.node = node
                 node.solver = solver
-                solver.target = nodes[bone.ikTargetBoneIndex]
+                solver.target = this.nodes[bone.ikTargetBoneIndex]
 
                 for(ikLink in bone.ikLinks) {
-                    val linkNode = nodes[ikLink.linkTarget]
+                    val linkNode = this.nodes[ikLink.linkTarget]
                     val chain = IKSolver.IKChain()
                     chain.node = linkNode
                     if(ikLink.angleLock == 0) {
@@ -202,6 +210,7 @@ class PmxModel(val file: PmxFile) : Model() {
                 }
                 solver.iterateCount = bone.ikLoop
                 solver.limitAngle = bone.ikLoopAngleLimit
+                ikSolvers.add(solver)
             }
         }
 
@@ -258,7 +267,7 @@ class PmxModel(val file: PmxFile) : Model() {
                     for (offset in pmxMorph.offsets) {
                         val boneOffset = offset as PmxFile.Morph.BoneOffset
                         val boneMorph = PmxMorph.BoneMorphData.BoneMorph()
-                        boneMorph.node = nodes[boneOffset.index]
+                        boneMorph.node = this.nodes[boneOffset.index]
                         boneOffset.translation.set(boneMorph.position)
                         boneMorph.position.z *= -1
                         boneOffset.rotation.set(boneMorph.rotation)
@@ -288,7 +297,7 @@ class PmxModel(val file: PmxFile) : Model() {
 
         // Physics
         for (pmxRigidBody in file.rigidBodies) {
-            val node = if(pmxRigidBody.targetBone != -1) { nodes[pmxRigidBody.targetBone] } else { null }
+            val node = if(pmxRigidBody.targetBone != -1) { this.nodes[pmxRigidBody.targetBone] } else { null }
             val shape = when (pmxRigidBody.shape) {
                 PmxFile.RigidBody.Shape.SPHERE -> SphereShape(pmxRigidBody.size.x)
                 PmxFile.RigidBody.Shape.BOX -> BoxShape(pmxRigidBody.size)
@@ -308,12 +317,8 @@ class PmxModel(val file: PmxFile) : Model() {
             val transMat = mat4f(1f).translate(pmxRigidBody.position)
             val rbMat = transMat.apply { mul(rotMat) }
 
-            val kinematicNode = if(node != null) {
-                node
-            } else {
-                nodes.first()
-            }
-            val offsetMat = (kinematicNode.global.clone() as Matrix4f).inverse().apply { mul(rbMat) }
+            val kinematicNode = node ?: this.nodes.first()
+            val offsetMat = Matrix4f(kinematicNode.global).inverse().apply { mul(rbMat) }
             var activeMotionState: MMDMotionState? = null
             val kinematicMotionState = KinematicMotionState(kinematicNode, offsetMat)
             val motionState = if (pmxRigidBody.op == PmxFile.RigidBody.Operation.STATIC) {
@@ -390,7 +395,7 @@ class PmxModel(val file: PmxFile) : Model() {
             rb.calcLocalTransform()
         }
 
-        nodes.forEach { node ->
+        this.nodes.forEach { node ->
             if(node.parent == null) {
                 node.updateGlobalTransform()
             }
@@ -399,5 +404,75 @@ class PmxModel(val file: PmxFile) : Model() {
         physicsManager.mmdRigidBodies.forEach { rb ->
             rb.reset(physicsManager)
         }
+    }
+
+    override fun initAnimation() {
+        clearBaseAnimation()
+
+        nodes.forEach { node ->
+            node.animTranslate.set(0f, 0f, 0f)
+            node.animRotate.set(1f, 0f, 0f, 0f)
+        }
+
+        beginAnimation()
+
+        nodes.forEach { node ->
+            node.updateLocalTransform()
+        }
+
+        morphs.forEach { morph ->
+            morph.weight = 0f
+        }
+
+        ikSolvers.forEach { ik ->
+            ik.isEnable = true
+        }
+
+        nodes.forEach { node ->
+            node.updateGlobalTransform()
+        }
+
+        nodes.forEach { node ->
+            if(node.appendNode != null) {
+                node.updateAppendTransform()
+                node.updateGlobalTransform()
+            }
+            if(node.solver != null) {
+                node.solver!!.solve()
+                node.updateGlobalTransform()
+            }
+        }
+
+        nodes.forEach { node ->
+            if(node.parent == null) {
+                node.updateGlobalTransform()
+            }
+        }
+
+        endAnimation()
+
+        resetPhysics()
+    }
+
+    override fun beginAnimation() {
+        nodes.forEach { node ->
+            node.beginUpdateTransform()
+        }
+        morphPositions.clear()
+        morphUVs.clear()
+        positions.forEach { _ ->
+            morphPositions.add(Vector3f())
+            morphUVs.add(Vector4f())
+        }
+    }
+
+    override fun endAnimation() {
+        nodes.forEach { node ->
+            node.endUpdateTransform()
+        }
+    }
+
+    override fun update() {
+        TODO("Not yet implemented")
     }
 }
