@@ -3,7 +3,8 @@ package me.liuli.mmd.model.addition.physics
 import com.bulletphysics.collision.dispatch.CollisionFlags
 import com.bulletphysics.dynamics.RigidBody
 import me.liuli.mmd.model.addition.Node
-import me.liuli.mmd.utils.inverse
+import me.liuli.mmd.utils.vector.inverse
+import me.liuli.mmd.utils.vector.operator.times
 import javax.vecmath.Matrix4f
 import javax.vecmath.Vector3f
 
@@ -38,9 +39,9 @@ class MMDRigidBody(val btRigidBody: RigidBody,
     fun calcLocalTransform() {
         if(node != null) {
             if(node.parent != null) {
-                node.local = (node.parent!!.global.clone() as Matrix4f).inverse().apply { mul(node.global) }
+                node.local = Matrix4f(node.parent!!.global).inverse() * node.global
             } else {
-                node.local = node.global.clone() as Matrix4f
+                node.local = Matrix4f(node.global)
             }
         }
     }

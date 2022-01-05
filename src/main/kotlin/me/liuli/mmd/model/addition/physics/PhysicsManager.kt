@@ -45,10 +45,6 @@ class PhysicsManager {
         world.addRigidBody(mmdRigidBody.btRigidBody, (1 shl mmdRigidBody.group).toShort(), mmdRigidBody.mask)
     }
 
-    fun addJoint(constraint: TypedConstraint) {
-        world.addConstraint(constraint)
-    }
-
     fun update(delta: Float) {
         world.stepSimulation(delta, 10)
     }

@@ -4,11 +4,17 @@ import me.liuli.mmd.file.PmxFile
 import me.liuli.mmd.file.VmdFile
 import me.liuli.mmd.file.parser.PmxParser
 import me.liuli.mmd.file.parser.VmdParser
+import me.liuli.mmd.utils.vector.castToMat4f
+import me.liuli.mmd.utils.vector.mat4f
+import me.liuli.mmd.utils.vector.rotate
 import java.io.File
+import javax.vecmath.Vector3f
+import javax.vecmath.Vector4f
 
 fun main(args: Array<String>) {
-    testVmd()
-    testPmx()
+    println(mat4f(1f).rotate(7f, Vector3f(2f, 3f, 5f)))
+//    testVmd()
+//    testPmx()
 //    testVpd()
 }
 

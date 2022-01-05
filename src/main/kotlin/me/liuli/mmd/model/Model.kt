@@ -44,7 +44,16 @@ abstract class Model {
     }
 
     abstract fun update()
-//    abstract fun updateAllAnimation()
+    abstract fun updateMorphAnimation()
+    abstract fun updateNodeAnimation(afterPhysicsAnim: Boolean)
+    abstract fun updatePhysicsAnimation(elapsed: Float)
+
+    open fun updateAllAnimation(elapsed: Float) {
+        updateMorphAnimation()
+        updateNodeAnimation(false)
+        updatePhysicsAnimation(elapsed)
+        updateNodeAnimation(true)
+    }
 
     protected abstract val nodes: List<Node>
     protected abstract val morphs: List<Morph>

@@ -2,7 +2,10 @@ package me.liuli.mmd.model.pmx
 
 import me.liuli.mmd.model.addition.IKSolver
 import me.liuli.mmd.model.addition.Node
-import me.liuli.mmd.utils.*
+import me.liuli.mmd.utils.slerp
+import me.liuli.mmd.utils.vector.*
+import me.liuli.mmd.utils.vector.operator.times
+import java.lang.Exception
 import javax.vecmath.Vector3f
 import javax.vecmath.Vector4f
 
@@ -20,7 +23,7 @@ class PmxNode : Node() {
 
     override fun beginUpdateTransform() {
         appendTranslate = Vector3f()
-        appendRotate = Vector4f(1f, 0f, 0f, 0f)
+        appendRotate = Vector4f(0f, 0f, 0f, 1f)
     }
 
     override fun updateLocalTransform() {
@@ -31,13 +34,13 @@ class PmxNode : Node() {
 
         val r = animateRotate()
         if(enableIk) {
-            r.mul(ikRotate)
+            r.set(r * ikRotate)
         }
         if(isAppendRotate) {
-            r.mul(appendRotate)
+            r.set(r * appendRotate)
         }
 
-        local = mat4f(1f).translate(t).apply { mul(r.castToMat4f()) }.also { it.mul(mat4f(1f).scale(this.scale)) }
+        local = mat4f(1f).translate(t) * r.castToMat4f() * mat4f(1f).scale(this.scale)
     }
 
     fun updateAppendTransform() {
@@ -54,9 +57,9 @@ class PmxNode : Node() {
                 }
             }
             if(appendNode!!.enableIk) {
-                appendRotate = Vector4f(appendNode!!.ikRotate).mul(appendRotate)
+                appendRotate = appendNode!!.ikRotate * appendRotate
             }
-            this.appendRotate = slerp(Vector4f(1f, 0f, 0f, 0f), appendRotate, appendWeight)
+            this.appendRotate = slerp(Vector4f(0f, 0f, 0f, 1f), appendRotate, appendWeight)
         }
 
         if(isAppendTranslate) {
@@ -76,7 +79,7 @@ class PmxNode : Node() {
                         it.z -= appendNode!!.initTranslate.z
                     }
                 }
-            }.mul(appendWeight, appendWeight, appendWeight)
+            } * vec3f(appendWeight)
         }
 
         updateLocalTransform()

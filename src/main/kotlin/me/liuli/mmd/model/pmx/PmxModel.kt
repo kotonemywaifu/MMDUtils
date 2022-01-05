@@ -10,9 +10,17 @@ import com.bulletphysics.dynamics.constraintsolver.Generic6DofConstraint
 import com.bulletphysics.linearmath.Transform
 import me.liuli.mmd.file.PmxFile
 import me.liuli.mmd.model.Model
-import me.liuli.mmd.model.addition.*
+import me.liuli.mmd.model.addition.IKSolver
+import me.liuli.mmd.model.addition.Material
+import me.liuli.mmd.model.addition.Morph
+import me.liuli.mmd.model.addition.SubMesh
 import me.liuli.mmd.model.addition.physics.*
-import me.liuli.mmd.utils.*
+import me.liuli.mmd.utils.mix
+import me.liuli.mmd.utils.setEulerZYX
+import me.liuli.mmd.utils.slerp
+import me.liuli.mmd.utils.vector.*
+import me.liuli.mmd.utils.vector.operator.plus
+import me.liuli.mmd.utils.vector.operator.times
 import java.io.File
 import javax.vecmath.Matrix4f
 import javax.vecmath.Vector2f
@@ -31,13 +39,22 @@ class PmxModel(val file: PmxFile) : Model() {
     override val morphs: List<Morph>
         get() = morphManager.morphs
 
+    private val sortedNodes: MutableList<PmxNode>
+    private val initMaterials = mutableListOf<Material>()
+
+    private val mulMaterialFactors = mutableListOf<PmxMaterialFactor>()
+    private val addMaterialFactors = mutableListOf<PmxMaterialFactor>()
+
     private val morphPositions = mutableListOf<Vector3f>()
     private val morphUVs = mutableListOf<Vector4f>()
 
+    private val transforms = mutableListOf<Matrix4f>()
+
     init {
+        val flipZVec3 = Vector3f(1f, 1f, -1f)
         for(vertex in file.vertices) {
-            positions.add(Vector3f(vertex.position).mul(1f, 1f, -1f))
-            normals.add(Vector3f(vertex.normal).mul(1f, 1f, -1f))
+            positions.add(vertex.position * flipZVec3)
+            normals.add(vertex.normal * flipZVec3)
             uvs.add(Vector2f(vertex.uv)/*.also { it.y = 1f - it.y }*/)
             val skinning = vertex.skinning // use kotlin smartcast
             vertexBoneInfos.add(if(skinning is PmxFile.Vertex.SkinningSDEF) {
@@ -51,8 +68,8 @@ class PmxModel(val file: PmxFile) : Model() {
                 sbi.c.x = skinning.c.x
                 sbi.c.y = skinning.c.y
                 sbi.c.z = skinning.c.z * -1
-                val r0 = Vector3f(skinning.r0).mul(1f, 1f, -1f)
-                val r1 = Vector3f(skinning.r1).mul(1f, 1f, -1f)
+                val r0 = skinning.r0 * flipZVec3
+                val r1 = skinning.r1 * flipZVec3
                 val rw = Vector3f(r0.x * skinning.weight + r1.x * w1, r0.y * skinning.weight + r1.y * w1, r0.z * skinning.weight + r1.z * w1)
                 r0.add(sbi.c)
                 r0.sub(rw)
@@ -142,6 +159,7 @@ class PmxModel(val file: PmxFile) : Model() {
             }
 
             materials.add(mat)
+            initMaterials.add(mat.clone())
 
             val mesh = SubMesh()
             mesh.beginIndex = beginIndex
@@ -183,7 +201,7 @@ class PmxModel(val file: PmxFile) : Model() {
             }
             node.saveInitialTRS()
         }
-        this.nodes.sortBy { it.deformDepth }
+        sortedNodes = this.nodes.sortedBy { it.deformDepth } as MutableList<PmxNode>
 
         // IK
         file.bones.forEachIndexed { index, bone ->
@@ -265,6 +283,7 @@ class PmxModel(val file: PmxFile) : Model() {
                     morph.dataIndex = morphManager.getSize(morph.type)
                     val data = PmxMorph.BoneMorphData()
                     for (offset in pmxMorph.offsets) {
+                        // TODO: May have issue
                         val boneOffset = offset as PmxFile.Morph.BoneOffset
                         val boneMorph = PmxMorph.BoneMorphData.BoneMorph()
                         boneMorph.node = this.nodes[boneOffset.index]
@@ -313,12 +332,12 @@ class PmxModel(val file: PmxFile) : Model() {
             val rx = mat4f(1f).rotate(pmxRigidBody.orientation.x, Vector3f(1f, 0f, 0f))
             val ry = mat4f(1f).rotate(pmxRigidBody.orientation.y, Vector3f(0f, 1f, 0f))
             val rz = mat4f(1f).rotate(pmxRigidBody.orientation.z, Vector3f(0f, 0f, 1f))
-            val rotMat = rx.apply { mul(ry) }.apply { mul(rz) }
+            val rotMat = rx * ry * rz
             val transMat = mat4f(1f).translate(pmxRigidBody.position)
-            val rbMat = transMat.apply { mul(rotMat) }
+            val rbMat = (transMat * rotMat).invZ()
 
             val kinematicNode = node ?: this.nodes.first()
-            val offsetMat = Matrix4f(kinematicNode.global).inverse().apply { mul(rbMat) }
+            val offsetMat = Matrix4f(kinematicNode.global).inverse() * rbMat
             var activeMotionState: MMDMotionState? = null
             val kinematicMotionState = KinematicMotionState(kinematicNode, offsetMat)
             val motionState = if (pmxRigidBody.op == PmxFile.RigidBody.Operation.STATIC) {
@@ -346,6 +365,7 @@ class PmxModel(val file: PmxFile) : Model() {
             rbInfo.additionalDamping = true
 
             val btRigidBody = RigidBody(rbInfo)
+            btRigidBody.userPointer = physicsManager
             btRigidBody.setSleepingThresholds(0.1f, Math.toRadians(0.1).toFloat())
             btRigidBody.activationState = RigidBody.DISABLE_DEACTIVATION
             if(pmxRigidBody.op == PmxFile.RigidBody.Operation.DYNAMIC) {
@@ -366,14 +386,14 @@ class PmxModel(val file: PmxFile) : Model() {
             transform.origin.set(pmxJoint.position)
             transform.basis.set(setEulerZYX(pmxJoint.orientation))
             val constraint = Generic6DofConstraint(rb1, rb2,
-                Transform(rb1.getWorldTransform(Transform())).apply { inverse() }.apply{ mul(transform) },
-                Transform(rb2.getWorldTransform(Transform())).apply { inverse() }.apply { mul(transform) }, true)
+                rb1.getWorldTransform(Transform()).apply { inverse() }.apply{ mul(transform) },
+                rb2.getWorldTransform(Transform()).apply { inverse() }.apply { mul(transform) }, true)
             constraint.setLinearLowerLimit(pmxJoint.moveLimitationMin)
             constraint.setLinearUpperLimit(pmxJoint.moveLimitationMax)
             constraint.setAngularLowerLimit(pmxJoint.rotationLimitationMin)
             constraint.setAngularUpperLimit(pmxJoint.rotationLimitationMax)
             // TODO: spring calculation if i found a bullet-physics port supporting it
-            physicsManager.addJoint(constraint)
+            physicsManager.world.addConstraint(constraint)
         }
 
         resetPhysics()
@@ -411,7 +431,7 @@ class PmxModel(val file: PmxFile) : Model() {
 
         nodes.forEach { node ->
             node.animTranslate.set(0f, 0f, 0f)
-            node.animRotate.set(1f, 0f, 0f, 0f)
+            node.animRotate.set(0f, 0f, 0f, 1f)
         }
 
         beginAnimation()
@@ -432,7 +452,7 @@ class PmxModel(val file: PmxFile) : Model() {
             node.updateGlobalTransform()
         }
 
-        nodes.forEach { node ->
+        sortedNodes.forEach { node ->
             if(node.appendNode != null) {
                 node.updateAppendTransform()
                 node.updateGlobalTransform()
@@ -473,6 +493,186 @@ class PmxModel(val file: PmxFile) : Model() {
     }
 
     override fun update() {
-        TODO("Not yet implemented")
+        transforms.clear()
+        nodes.forEachIndexed { i, node ->
+            transforms.add(i, node.global * node.inverseInit)
+        }
+
+        updatePositions.clear()
+        updateNormals.clear()
+        updateUvs.clear()
+        vertexBoneInfos.forEachIndexed { index, vbi ->
+            updateUvs.add(index, Vector2f(uvs[index]).apply {
+                x += morphUVs[index].x
+                y += morphUVs[index].y
+            })
+            val mat = when(vbi.skinningType) {
+                VertexBoneInfo.SkinningType.Weight1 -> {
+                    transforms[(vbi as NormalVertexBoneInfo).boneIndices[0]]
+                }
+                VertexBoneInfo.SkinningType.Weight2 -> {
+                    val nvbi = vbi as NormalVertexBoneInfo
+                    (transforms[nvbi.boneIndices[0]] * nvbi.boneWeights[0]) + (transforms[nvbi.boneIndices[1]] * nvbi.boneWeights[1])
+                }
+                VertexBoneInfo.SkinningType.Weight4 -> {
+                    val nvbi = vbi as NormalVertexBoneInfo
+                    (transforms[nvbi.boneIndices[0]] * nvbi.boneWeights[0]) + (transforms[nvbi.boneIndices[1]] * nvbi.boneWeights[1]) +
+                            (transforms[nvbi.boneIndices[2]] * nvbi.boneWeights[2]) + (transforms[nvbi.boneIndices[3]] * nvbi.boneWeights[3])
+                }
+                else -> throw IllegalArgumentException("VertexBoneInfo type not supported: ${vbi.skinningType}")
+            }
+
+            updatePositions.add(index, vec3f(mat * vec4f(positions[index] + morphPositions[index], 1f)))
+            updateNormals.add(index, (mat3f(mat) * normals[index]).apply { normalize() })
+        }
+    }
+
+    override fun updateMorphAnimation() {
+        beginMorphMaterial()
+
+        for(morph in morphManager.morphs) {
+            procMorph(morph)
+        }
+
+        endMorphMaterial()
+    }
+
+    override fun updateNodeAnimation(afterPhysicsAnim: Boolean) {
+        for(pmxNode in sortedNodes) {
+            if (pmxNode.deformAfterPhysics != afterPhysicsAnim) continue
+            pmxNode.updateLocalTransform()
+        }
+        for(pmxNode in sortedNodes) {
+            if (pmxNode.deformAfterPhysics != afterPhysicsAnim) continue
+            if(pmxNode.parent == null) {
+                pmxNode.updateGlobalTransform()
+            }
+        }
+        for(pmxNode in sortedNodes) {
+            if (pmxNode.deformAfterPhysics != afterPhysicsAnim) continue
+            if(pmxNode.appendNode != null) {
+                pmxNode.updateAppendTransform()
+                pmxNode.updateGlobalTransform()
+            }
+            if(pmxNode.solver != null) {
+                pmxNode.solver!!.solve()
+                pmxNode.updateGlobalTransform()
+            }
+        }
+        for(pmxNode in sortedNodes) {
+            if (pmxNode.deformAfterPhysics != afterPhysicsAnim) continue
+            if(pmxNode.parent == null) {
+                pmxNode.updateGlobalTransform()
+            }
+        }
+    }
+
+    override fun updatePhysicsAnimation(elapsed: Float) {
+        physicsManager.mmdRigidBodies.forEach { it.setActivation(true) }
+
+        physicsManager.update(elapsed)
+
+        physicsManager.mmdRigidBodies.forEach { it.reflectGlobalTransform() }
+
+        physicsManager.mmdRigidBodies.forEach { it.calcLocalTransform() }
+
+        nodes.forEach { node ->
+            if(node.parent != null) {
+                node.updateGlobalTransform()
+            }
+        }
+    }
+
+    private fun beginMorphMaterial() {
+        mulMaterialFactors.clear()
+        addMaterialFactors.clear()
+        initMaterials.forEachIndexed { i, mat ->
+            val initMul = PmxMaterialFactor.initMul()
+            initMul.diffuse.set(mat.diffuse)
+            initMul.alpha = mat.alpha
+            initMul.specular.set(mat.specular)
+            initMul.specularPower = mat.specularPower
+            initMul.ambient.set(initMul.ambient)
+            mulMaterialFactors.add(i, initMul)
+
+            addMaterialFactors.add(i, PmxMaterialFactor.initAdd())
+        }
+    }
+
+    private fun endMorphMaterial() {
+        materials.forEachIndexed { i, mat ->
+            val mf = mulMaterialFactors[i]
+            mf.add(addMaterialFactors[i], 1f)
+
+            mat.diffuse.set(mf.diffuse)
+            mat.alpha = mf.alpha
+            mat.specular.set(mf.specular)
+            mat.specularPower = mf.specularPower
+            mat.ambient.set(mf.ambient)
+            mat.textureFactor.set(mf.textureFactor)
+            mat.spTextureFactor.set(mf.spTextureFactor)
+            mat.toonTextureFactor.set(mf.toonTextureFactor)
+        }
+    }
+
+    private fun procMorph(morph: PmxMorph) {
+        val data = morphManager[morph]
+        when(morph.type) {
+            PmxMorph.MorphType.POSITION -> {
+                for(morphVtx in (data as PmxMorph.PositionMorphData).positions) {
+                    morphPositions[morphVtx.index].apply { set(morphVtx.position) } * vec3f(morph.weight)
+                }
+            }
+            PmxMorph.MorphType.UV -> {
+                for(morphUv in (data as PmxMorph.UVMorphData).uvs) {
+                    morphUVs[morphUv.index].apply { set(morphUv.offset) } * vec4f(morph.weight)
+                }
+            }
+            PmxMorph.MorphType.MATERIAL -> {
+                for(matMorph in (data as PmxMorph.MaterialMorphData).materials) {
+                    val matFactor = PmxMaterialFactor.mat(matMorph)
+                    if(matMorph.index != -1) {
+                        val mi = matMorph.index
+                        when (matMorph.operation) {
+                            0 -> { // mul
+                                mulMaterialFactors[mi].mul(matFactor, morph.weight)
+                            }
+                            1 -> { // add
+                                mulMaterialFactors[mi].add(matFactor, morph.weight)
+                            }
+                            else -> throw IllegalArgumentException("Invalid Op Code: ${matMorph.operation}")
+                        }
+                    } else {
+                        when (matMorph.operation) {
+                            0 -> {
+                                for(i in 0 until materials.size) {
+                                    mulMaterialFactors[i].mul(matFactor, morph.weight)
+                                }
+                            }
+                            1 -> {
+                                for(i in 0 until materials.size) {
+                                    mulMaterialFactors[i].add(matFactor, morph.weight)
+                                }
+                            }
+                            else -> throw IllegalArgumentException("Invalid Op Code: ${matMorph.operation}")
+                        }
+                    }
+                }
+            }
+            PmxMorph.MorphType.BONE -> {
+                for(boneMorph in (data as PmxMorph.BoneMorphData).bones) {
+                    val node = boneMorph.node
+                    node.translate.set(node.translate + mix(vec3f(0f), boneMorph.position, morph.weight))
+                    node.rotate.set(slerp(node.rotate, boneMorph.rotation, morph.weight))
+                }
+            }
+            PmxMorph.MorphType.GROUP -> {
+                for(groupMorph in (data as PmxMorph.GroupMorphData).groups) {
+                    if(groupMorph.index == -1) continue
+                    procMorph(morphManager.morphs[groupMorph.index])
+                }
+            }
+            else -> throw IllegalArgumentException("Unsupported morph type: ${morph.type}")
+        }
     }
 }

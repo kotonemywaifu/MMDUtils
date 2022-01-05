@@ -3,6 +3,7 @@ package me.liuli.mmd.model.addition
 import java.awt.Color
 import java.io.File
 import javax.vecmath.Vector3f
+import javax.vecmath.Vector4f
 
 open class Material {
     var diffuse = Vector3f()
@@ -21,6 +22,32 @@ open class Material {
     var spTexture: File? = null
     var toonTexture: File? = null
     var spTextureMode = SphereTextureMode.NONE
+    var textureFactor = Vector4f()
+    var spTextureFactor = Vector4f()
+    var toonTextureFactor = Vector4f()
+
+    fun clone(): Material {
+        val mat = Material()
+
+        mat.diffuse = this.diffuse
+        mat.alpha = this.alpha
+        mat.specular = this.specular
+        mat.specularPower = this.specularPower
+        mat.ambient = this.ambient
+        mat.edgeFlag = this.edgeFlag
+        mat.bothFace = this.bothFace
+        mat.groundShadow = this.groundShadow
+        mat.shadowCaster = this.shadowCaster
+        mat.shadowReceiver = this.shadowReceiver
+        mat.edgeSize = this.edgeSize
+        mat.edgeColor = this.edgeColor
+        mat.texture = this.texture
+        mat.spTexture = this.spTexture
+        mat.toonTexture = this.toonTexture
+        mat.spTextureMode = this.spTextureMode
+
+        return mat
+    }
 
     enum class SphereTextureMode {
         NONE,

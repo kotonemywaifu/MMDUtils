@@ -214,9 +214,9 @@ class PmxFile: InteractiveFile() {
             val ambient = Vector3f()
             var edgeColor: Color = Color.WHITE
             var edgeSize = 0f
-            var textureColor: Color = Color.WHITE
-            var sphereTextureColor: Color = Color.WHITE
-            var toonTextureColor: Color = Color.WHITE
+            val textureFactor = Vector4f()
+            val sphereTextureFactor = Vector4f()
+            val toonTextureFactor = Vector4f()
         }
 
         class FlipOffset : Offset {

@@ -1,6 +1,10 @@
 package me.liuli.mmd.model.addition
 
-import me.liuli.mmd.utils.*
+import me.liuli.mmd.utils.clamp
+import me.liuli.mmd.utils.degrees
+import me.liuli.mmd.utils.vector.inverse
+import me.liuli.mmd.utils.vector.operator.minus
+import me.liuli.mmd.utils.vector.operator.times
 import javax.vecmath.Matrix4f
 import javax.vecmath.Quat4f
 import javax.vecmath.Vector3f
@@ -37,7 +41,7 @@ class IKSolver {
 
             val targetPos = Vector3f(target.global.m30, target.global.m31, target.global.m32)
             val ikPos = Vector3f(node.global.m30, node.global.m31, node.global.m32)
-            val dist = ikPos.dist(targetPos)
+            val dist = (ikPos - targetPos).length()
             if (dist < maxDist) {
                 maxDist = dist
                 for(chain in chains) {
@@ -81,8 +85,8 @@ class IKSolver {
 
             val targetPos = Vector3f(target.global.m30, target.global.m31, target.global.m32)
             val invChain = Matrix4f(chain.node.global).inverse()
-            val chainIkPos = invChain.mul(Vector4f(ikPos.x, ikPos.y, ikPos.z, 1f)).let { Vector3f(it.x, it.y, it.z) }
-            val chainTargetPos = invChain.mul(Vector4f(targetPos.x, targetPos.y, targetPos.z, 1f)).let { Vector3f(it.x, it.y, it.z) }
+            val chainIkPos = (invChain * Vector4f(ikPos.x, ikPos.y, ikPos.z, 1f)).let { Vector3f(it.x, it.y, it.z) }
+            val chainTargetPos = (invChain * Vector4f(targetPos.x, targetPos.y, targetPos.z, 1f)).let { Vector3f(it.x, it.y, it.z) }
             val chainIkVec = Vector3f(chainIkPos).apply { normalize() }
             val chainTargetVec = Vector3f(chainTargetPos).apply { normalize() }
             val dot = clamp(chainTargetVec.dot(chainIkVec), -1f, 1f)
@@ -93,17 +97,17 @@ class IKSolver {
             }
             angle = clamp(angle, -limitAngle, limitAngle)
             val cross = Vector3f().apply { cross(chainIkVec, chainTargetVec) }.apply { normalize() }
-            val rot = Vector4f(angle, cross.x, cross.y, cross.z)
-            val chainRot = Vector4f(chainNode.ikRotate).mul(chainNode.animRotate).mul(rot)
+            val rot = Vector4f(cross.x, cross.y, cross.z, angle)
+            val chainRot = chainNode.ikRotate * chainNode.animRotate * rot
             if(chain.enableAxisLimit) {
                 val chainRotM = Matrix4f().apply { setRotation(Quat4f(chainRot)) }
-                // TODO: Decompose
+                TODO("Decompose")
             }
         }
     }
 
     fun solvePlane(iterate: Int, index: Int, axis: SolveAxis) {
-
+        TODO("Not yet implemented")
     }
 
     enum class SolveAxis {

@@ -42,6 +42,10 @@ fun loadModel(): Model {
     val model = PmxModel(pmxFile)
     println("Time cost(SERIALIZATION): ${System.currentTimeMillis() - time}ms")
 
+    time = System.currentTimeMillis()
+    model.initAnimation()
+    println("Time cost(INITIALIZE): ${System.currentTimeMillis() - time}ms")
+
     return model
 }
 
@@ -58,11 +62,23 @@ private fun loop() {
     println("Start rendering loop with model ${(model as PmxModel).file.name}...")
 
     var glfwPrevTime = glfwGetTime()
+    var glfwLastTime = glfwGetTime()
     var frameCount = 0
 
     glEnable(GL_DEPTH_TEST)
 
     glClearColor(1f, 1f, 1f, 1f)
+
+    val updRunnable = {
+        model.beginAnimation()
+        // add vmd animation update here
+        model.updateAllAnimation((glfwLastTime - glfwGetTime()).toFloat())
+        glfwLastTime = glfwGetTime()
+        model.endAnimation()
+        model.update()
+    }
+    var thread = Thread(updRunnable, "Model-Update").apply { start() }
+
     while (!glfwWindowShouldClose(window)) {
         glViewport(0, 0, 800, 600)
 
@@ -78,16 +94,19 @@ private fun loop() {
         glScalef(0.1f, 0.15f, 0.15f)
         glTranslatef(0f, -8f, 0f)
         // rotate the polygon
-        glRotatef(glfwGetTime().toFloat() * 25, 0f, 1f, 0f)
+//        glRotatef(glfwGetTime().toFloat() * 25, 0f, 1f, 0f)
+
+        thread.join()
 
         renderer.render()
+
+        thread = Thread(updRunnable, "Model-Update").apply { start() }
 
         glPopMatrix()
 
         val i = glGetError()
-
         if (i != 0) {
-            println("########## GL ERROR -> $i ##########")
+            println("GL ERROR -> $i")
         }
 
         glfwSwapBuffers(window)

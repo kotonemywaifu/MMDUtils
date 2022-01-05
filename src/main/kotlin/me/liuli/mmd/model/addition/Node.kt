@@ -1,7 +1,7 @@
 package me.liuli.mmd.model.addition
 
-import me.liuli.mmd.utils.inverse
-import me.liuli.mmd.utils.mul
+import me.liuli.mmd.utils.vector.inverse
+import me.liuli.mmd.utils.vector.operator.times
 import javax.vecmath.Matrix4f
 import javax.vecmath.Vector3f
 import javax.vecmath.Vector4f
@@ -53,10 +53,10 @@ open class Node {
     }
 
     fun updateGlobalTransform() {
-        if(parent == null) {
-            global = Matrix4f(local)
+        global = if(parent == null) {
+            Matrix4f(local)
         } else {
-            global = Matrix4f(parent!!.global).apply { mul(local) }
+            parent!!.global * local
         }
         if(child != null) {
             child!!.updateGlobalTransform()
@@ -82,7 +82,7 @@ open class Node {
 
     fun clearBaseAnimation() {
         baseAnimTranslate = Vector3f()
-        baseAnimRotate = Vector4f(1f, 0f, 0f, 0f)
+        baseAnimRotate = Vector4f(0f, 0f, 0f, 1f)
     }
 
     protected fun animateTranslate(): Vector3f {
@@ -90,7 +90,7 @@ open class Node {
     }
 
     protected fun animateRotate(): Vector4f {
-        return Vector4f(animRotate).mul(rotate)
+        return animRotate * rotate
     }
 
     fun loadBaseAnimation() {

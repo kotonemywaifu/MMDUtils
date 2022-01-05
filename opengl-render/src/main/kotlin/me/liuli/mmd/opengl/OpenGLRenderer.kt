@@ -23,7 +23,7 @@ class OpenGLRenderer : Renderer() {
         }
 
         model.materials.forEach {
-            if(it.texture != null && it.texture!!.exists() && !textures.containsKey(it.texture!!)) {
+            if(it.texture != null && it.texture!!.exists() && !textures.any { (tex, _) -> it.texture!!.absolutePath == tex.absolutePath }) {
                 textures[it.texture!!] = textureLoader.load(it.texture!!)
             }
         }
@@ -72,9 +72,9 @@ class OpenGLRenderer : Renderer() {
                 if(index !in 0 until model!!.positions.size) {
                     continue
                 }
-                val pos = model!!.positions[index]
-                val nor = model!!.normals[index]
-                val uv = model!!.uvs[index]
+                val pos = model!!.updatePositions[index]
+                val nor = model!!.updateNormals[index]
+                val uv = model!!.updateUvs[index]
 
                 GL11.glVertex3f(pos.x, pos.y, pos.z)
                 GL11.glNormal3f(nor.x, nor.y, nor.z)

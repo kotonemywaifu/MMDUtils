@@ -4,10 +4,11 @@ import com.bulletphysics.linearmath.MotionState
 import com.bulletphysics.linearmath.Transform
 import me.liuli.mmd.model.addition.Node
 import me.liuli.mmd.model.pmx.PmxNode
-import me.liuli.mmd.utils.inverse
-import me.liuli.mmd.utils.mat4f
+import me.liuli.mmd.utils.vector.alignas16mat4
+import me.liuli.mmd.utils.vector.invZ
+import me.liuli.mmd.utils.vector.inverse
+import me.liuli.mmd.utils.vector.operator.times
 import javax.vecmath.Matrix4f
-import javax.vecmath.Vector3f
 
 abstract class MMDMotionState : MotionState() {
 
@@ -18,8 +19,14 @@ abstract class MMDMotionState : MotionState() {
 
 class DefaultMotionState(transform: Matrix4f) : MMDMotionState() {
 
-    var transform = Transform(transform)
-    val initialTransform = Transform(transform) // bullet transform can't be cloned
+    var transform: Transform
+    var initialTransform: Transform
+
+    init {
+        val invZMat = Matrix4f(transform).invZ()
+        this.transform = Transform(invZMat)
+        this.initialTransform = Transform(invZMat)
+    }
 
     override fun getWorldTransform(out: Transform): Transform {
         return transform
@@ -46,13 +53,12 @@ open class DynamicMotionState(protected val node: Node, protected val offset: Ma
     }
 
     override fun reset() {
-        transform = Transform((node.global.clone() as Matrix4f).apply { mul(offset) })
+        transform = Transform((node.global * offset).invZ())
     }
 
     override fun reflectGlobalTransform() {
-        val world = mat4f(0f)
-        transform = Transform(world)
-        val global = world.apply { mul(invOffset) }
+        val world = transform.getMatrix(alignas16mat4)
+        val global = world.invZ() * invOffset
         if(overrideMat) {
             node.global = global
             node.updateChildTransform()
@@ -71,11 +77,13 @@ open class DynamicMotionState(protected val node: Node, protected val offset: Ma
 class DynamicAndBoneMergeMotionState(node: Node, offset: Matrix4f, overrideMat: Boolean = true) : DynamicMotionState(node, offset, overrideMat) {
 
     override fun reflectGlobalTransform() {
-        val world = mat4f(0f)
-        transform = Transform(world)
-        val global = world.apply { mul(invOffset) }
+        val world = transform.getMatrix(alignas16mat4)
+        val global = world.invZ() * invOffset
         val nGlobal = node.global
-        global.set(3f, Vector3f(nGlobal.m03, nGlobal.m13, nGlobal.m23))
+        global.m30 = nGlobal.m30
+        global.m31 = nGlobal.m31
+        global.m32 = nGlobal.m32
+        global.m33 = nGlobal.m33
         if(overrideMat) {
             node.global = global
             node.updateChildTransform()
@@ -87,10 +95,10 @@ class KinematicMotionState(private val node: PmxNode?, private val offset: Matri
 
     override fun getWorldTransform(out: Transform?): Transform {
         return Transform(if(node == null) {
-            offset
+            Matrix4f(offset)
         } else {
-            (node.global.clone() as Matrix4f).apply { mul(offset) }
-        })
+            node.global * offset
+        }.invZ())
     }
 
     override fun setWorldTransform(worldTrans: Transform?) {}

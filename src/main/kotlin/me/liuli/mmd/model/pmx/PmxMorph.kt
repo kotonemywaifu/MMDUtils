@@ -91,15 +91,7 @@ class PmxMorphManager {
             PmxMorph.MorphType.MATERIAL -> materialMorphs.add(morphData as PmxMorph.MaterialMorphData)
             PmxMorph.MorphType.BONE -> boneMorphs.add(morphData as PmxMorph.BoneMorphData)
             PmxMorph.MorphType.GROUP -> groupMorphs.add(morphData as PmxMorph.GroupMorphData)
+            else -> throw IllegalArgumentException("Unsupported morph type: ${morphData.type}")
         }
-    }
-
-    fun clear() {
-        morphs.clear()
-        positionMorphs.clear()
-        uvMorphs.clear()
-        materialMorphs.clear()
-        boneMorphs.clear()
-        groupMorphs.clear()
     }
 }

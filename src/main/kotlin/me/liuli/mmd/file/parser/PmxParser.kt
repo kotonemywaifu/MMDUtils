@@ -246,9 +246,9 @@ object PmxParser : Parser<PmxFile> {
                     iterator.readVector3f(material.ambient)
                     material.edgeColor = iterator.readColor4f()
                     material.edgeSize = iterator.readFloat()
-                    material.textureColor = iterator.readColor4f()
-                    material.sphereTextureColor = iterator.readColor4f()
-                    material.toonTextureColor = iterator.readColor4f()
+                    iterator.readVector4f(material.textureFactor)
+                    iterator.readVector4f(material.sphereTextureFactor)
+                    iterator.readVector4f(material.toonTextureFactor)
                     material
                 }
                 PmxFile.Morph.Type.UV,
@@ -634,9 +634,9 @@ object PmxParser : Parser<PmxFile> {
                     bos.writeVector3f(offset.ambient)
                     bos.writeColor4f(offset.edgeColor)
                     bos.writeFloat(offset.edgeSize)
-                    bos.writeColor4f(offset.textureColor)
-                    bos.writeColor4f(offset.sphereTextureColor)
-                    bos.writeColor4f(offset.toonTextureColor)
+                    bos.writeVector4f(offset.textureFactor)
+                    bos.writeVector4f(offset.sphereTextureFactor)
+                    bos.writeVector4f(offset.toonTextureFactor)
                 }
                 is PmxFile.Morph.UvOffset -> {
                     bos.writeInt(offset.index)
