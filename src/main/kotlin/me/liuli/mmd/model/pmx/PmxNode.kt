@@ -14,16 +14,17 @@ class PmxNode : Node() {
     var deformAfterPhysics = false
     var isAppendRotate = false
     var isAppendTranslate = false
-    var appendTranslate = Vector3f()
-    var appendRotate = Vector4f()
+    val appendTranslate = Vector3f(0f, 0f, 0f)
+    val appendRotate = Vector4f(0f, 0f, 0f, 1f)
     var appendNode: PmxNode? = null
     var isAppendLocal = false
     var appendWeight = 0f
     var solver: IKSolver? = null
 
     override fun beginUpdateTransform() {
-        appendTranslate = Vector3f()
-        appendRotate = Vector4f(0f, 0f, 0f, 1f)
+        super.beginUpdateTransform()
+        appendTranslate.set(0f, 0f, 0f)
+        appendRotate.set(0f, 0f, 0f, 1f)
     }
 
     override fun updateLocalTransform() {
@@ -40,7 +41,7 @@ class PmxNode : Node() {
             r.set(r * appendRotate)
         }
 
-        local = mat4f(1f).translate(t) * r.castToMat4f() * mat4f(1f).scale(this.scale)
+        local.set(mat4f(1f).translate(t) * r.castToMat4f() * mat4f(1f).scale(this.scale))
     }
 
     fun updateAppendTransform() {
@@ -59,11 +60,11 @@ class PmxNode : Node() {
             if(appendNode!!.enableIk) {
                 appendRotate = appendNode!!.ikRotate * appendRotate
             }
-            this.appendRotate = slerp(Vector4f(0f, 0f, 0f, 1f), appendRotate, appendWeight)
+            this.appendRotate.set(slerp(Vector4f(0f, 0f, 0f, 1f), appendRotate, appendWeight))
         }
 
         if(isAppendTranslate) {
-            this.appendTranslate = if(isAppendLocal) {
+            this.appendTranslate.set(if(isAppendLocal) {
                 Vector3f(appendNode!!.translate).also {
                     it.x -= appendNode!!.initTranslate.x
                     it.y -= appendNode!!.initTranslate.y
@@ -79,7 +80,7 @@ class PmxNode : Node() {
                         it.z -= appendNode!!.initTranslate.z
                     }
                 }
-            } * vec3f(appendWeight)
+            } * vec3f(appendWeight))
         }
 
         updateLocalTransform()

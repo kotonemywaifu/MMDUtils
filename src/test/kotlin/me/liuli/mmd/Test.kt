@@ -4,18 +4,43 @@ import me.liuli.mmd.file.PmxFile
 import me.liuli.mmd.file.VmdFile
 import me.liuli.mmd.file.parser.PmxParser
 import me.liuli.mmd.file.parser.VmdParser
-import me.liuli.mmd.utils.vector.castToMat4f
-import me.liuli.mmd.utils.vector.mat4f
-import me.liuli.mmd.utils.vector.rotate
+import me.liuli.mmd.model.pmx.PmxModel
+import me.liuli.mmd.utils.vector.inverse
+import me.liuli.mmd.utils.vector.operator.times
 import java.io.File
-import javax.vecmath.Vector3f
-import javax.vecmath.Vector4f
+import javax.vecmath.Matrix4f
+import kotlin.math.abs
 
 fun main(args: Array<String>) {
-    println(mat4f(1f).rotate(7f, Vector3f(2f, 3f, 5f)))
+    var time = System.currentTimeMillis()
+    val jfile = File("test_files/pmx/test.pmx")
+    val pmxFile = PmxParser.read(jfile.readBytes())
+    pmxFile.dir = jfile.parentFile
+    println("Time cost(READ): ${System.currentTimeMillis() - time}ms")
+
+    time = System.currentTimeMillis()
+    val model = PmxModel(pmxFile)
+    println("Time cost(SERIALIZATION): ${System.currentTimeMillis() - time}ms")
+
+    time = System.currentTimeMillis()
+    model.initAnimation()
+    println("Time cost(INITIALIZE): ${System.currentTimeMillis() - time}ms")
+
+    time = System.currentTimeMillis()
+    model.beginAnimation()
+    model.updateAllAnimation(1f)
+    model.endAnimation()
+    model.update()
+    println("Time cost(UPDATE): ${System.currentTimeMillis() - time}ms")
+    model.updatePositions.filter { ille(it.x, 50f) || ille(it.y, 50f) || ille(it.z, 50f) }.forEach { println(it) }
+
 //    testVmd()
 //    testPmx()
 //    testVpd()
+}
+
+private fun ille(float: Float, r: Float): Boolean {
+    return abs(float) > r
 }
 
 private fun testVmd() {

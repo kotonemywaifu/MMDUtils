@@ -1,6 +1,8 @@
 package me.liuli.mmd.model.addition
 
 import me.liuli.mmd.utils.vector.inverse
+import me.liuli.mmd.utils.vector.mat4f
+import me.liuli.mmd.utils.vector.operator.plus
 import me.liuli.mmd.utils.vector.operator.times
 import javax.vecmath.Matrix4f
 import javax.vecmath.Vector3f
@@ -13,26 +15,23 @@ open class Node {
     var next: Node? = null
     var prev: Node? = null
 
-    val translate = Vector3f()
-    val rotate = Vector4f()
+    val translate = Vector3f(0f, 0f, 0f)
+    val rotate = Vector4f(0f, 0f, 0f, 1f)
     val scale = Vector3f(1f, 1f, 1f)
-    var local = Matrix4f()
-    var global = Matrix4f()
-    var inverseInit = Matrix4f()
+    val local = mat4f(1f)
+    val global = mat4f(1f)
+    val inverseInit = mat4f(1f)
 
-    var initTranslate = Vector3f()
-        private set
-    var initRotate = Vector4f()
-        private set
-    var initScale = Vector3f()
-        private set
+    val initTranslate = Vector3f(0f, 0f, 0f)
+    val initRotate = Vector4f(0f, 0f, 0f, 1f)
+    val initScale = Vector3f(1f, 1f, 1f)
     var enableIk = false
 
-    var animTranslate = Vector3f()
-    var animRotate = Vector4f()
-    var baseAnimTranslate = Vector3f()
-    var baseAnimRotate = Vector4f()
-    var ikRotate = Vector4f()
+    val animTranslate = Vector3f(0f, 0f, 0f)
+    val animRotate = Vector4f(0f, 0f, 0f, 1f)
+    val baseAnimTranslate = Vector3f(0f, 0f, 0f)
+    val baseAnimRotate = Vector4f(0f, 0f, 0f, 1f)
+    val ikRotate = Vector4f(0f, 0f, 0f, 1f)
 
     fun addChild(node: Node) {
         node.parent = this
@@ -49,15 +48,15 @@ open class Node {
     }
 
     fun calculateInverseInitTransform() {
-        inverseInit = Matrix4f(global).inverse()
+        inverseInit.set(Matrix4f(global).inverse())
     }
 
     fun updateGlobalTransform() {
-        global = if(parent == null) {
+        global.set(if(parent == null) {
             Matrix4f(local)
         } else {
             parent!!.global * local
-        }
+        })
         if(child != null) {
             child!!.updateGlobalTransform()
             child = child!!.next
@@ -65,28 +64,33 @@ open class Node {
     }
 
     fun saveInitialTRS() {
-        initTranslate = Vector3f(translate)
-        initRotate = Vector4f(rotate)
-        initScale = Vector3f(scale)
+        initTranslate.set(translate)
+        initRotate.set(rotate)
+        initScale.set(scale)
     }
 
     fun updateChildTransform() {
         child ?: return
-        child!!.updateChildTransform()
+        child!!.updateGlobalTransform()
         child = child!!.next
     }
 
-    open fun beginUpdateTransform() {}
+    open fun beginUpdateTransform() {
+        translate.set(initTranslate)
+        rotate.set(initRotate)
+        scale.set(initScale)
+        ikRotate.set(0f, 0f, 0f, 1f)
+    }
     open fun endUpdateTransform() {}
     open fun updateLocalTransform() {}
 
     fun clearBaseAnimation() {
-        baseAnimTranslate = Vector3f()
-        baseAnimRotate = Vector4f(0f, 0f, 0f, 1f)
+        baseAnimTranslate.set(0f, 0f, 0f)
+        baseAnimRotate.set(0f, 0f, 0f, 1f)
     }
 
     protected fun animateTranslate(): Vector3f {
-        return Vector3f(animTranslate).apply { add(translate) }
+        return animTranslate + translate
     }
 
     protected fun animateRotate(): Vector4f {
@@ -94,12 +98,12 @@ open class Node {
     }
 
     fun loadBaseAnimation() {
-        animTranslate = Vector3f(baseAnimTranslate)
-        animRotate = Vector4f(baseAnimRotate)
+        animTranslate.set(baseAnimTranslate)
+        animRotate.set(baseAnimRotate)
     }
 
     fun saveBaseAnimation() {
-        baseAnimTranslate = Vector3f(animTranslate)
-        baseAnimRotate = Vector4f(animRotate)
+        baseAnimTranslate.set(animTranslate)
+        baseAnimRotate.set(animRotate)
     }
 }

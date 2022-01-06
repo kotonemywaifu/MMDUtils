@@ -101,13 +101,13 @@ class IKSolver {
             val chainRot = chainNode.ikRotate * chainNode.animRotate * rot
             if(chain.enableAxisLimit) {
                 val chainRotM = Matrix4f().apply { setRotation(Quat4f(chainRot)) }
-                TODO("Decompose")
+//                TODO("Decompose")
             }
         }
     }
 
     fun solvePlane(iterate: Int, index: Int, axis: SolveAxis) {
-        TODO("Not yet implemented")
+//        TODO("Not yet implemented")
     }
 
     enum class SolveAxis {
@@ -128,7 +128,7 @@ class IKSolver {
         val limitMax = Vector3f()
         val limitMin = Vector3f()
         val prevAngle = Vector3f()
-        val saveIKRot = Vector4f(1f, 0f, 0f, 0f)
+        val saveIKRot = Vector4f(0f, 0f, 0f, 1f)
         var planeModeAngle = 0f
     }
 }

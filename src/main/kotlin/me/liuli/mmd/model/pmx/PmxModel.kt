@@ -188,7 +188,7 @@ class PmxModel(val file: PmxFile) : Model() {
                 node.translate.z = bone.position.z
             }
             node.translate.z *= -1
-            node.global = mat4f(1f).apply { translate(bone.position.x, bone.position.y, bone.position.z * -1f) }
+            node.global.set(mat4f(1f).apply { translate(bone.position.x, bone.position.y, bone.position.z * -1f) })
             node.calculateInverseInitTransform()
             node.deformDepth = bone.level
             node.deformAfterPhysics = (bone.flag and PmxBoneFlags.DEFORM_AFTER_PHYSICS.flag) != zeroShort
@@ -521,7 +521,6 @@ class PmxModel(val file: PmxFile) : Model() {
                 }
                 else -> throw IllegalArgumentException("VertexBoneInfo type not supported: ${vbi.skinningType}")
             }
-
             updatePositions.add(index, vec3f(mat * vec4f(positions[index] + morphPositions[index], 1f)))
             updateNormals.add(index, (mat3f(mat) * normals[index]).apply { normalize() })
         }

@@ -5,15 +5,7 @@ import javax.vecmath.Matrix4f
 import javax.vecmath.Vector3f
 import javax.vecmath.Vector4f
 import kotlin.math.cos
-import kotlin.math.pow
 import kotlin.math.sin
-import kotlin.math.sqrt
-
-val alignas16mat4 = Matrix4f(-2.96205e+28f, 4.59135e-41f, 7.43172e-28f, 3.08874e-41f,
-    2.8026e-45f, 0f, 7.43181e-28f, 3.08874e-41f,
-    0f, 0f, 7.43177e-28f, 3.08874e-41f,
-    0f, 0f, 7.43115e-28f, 3.08874e-41f)
-    get() = Matrix4f(field)
 
 fun Matrix4f.translate(vector3f: Vector3f): Matrix4f {
     return translate(vector3f.x, vector3f.y, vector3f.z)
@@ -61,7 +53,6 @@ fun Matrix4f.inverse(): Matrix4f {
 }
 
 fun Matrix4f.rotate(angle: Float, vector3f: Vector3f): Matrix4f {
-    // TODO: has issue
     val s = sin(angle)
     val c = cos(angle)
     val axis = Vector3f(vector3f).apply { normalize() }
@@ -77,7 +68,7 @@ fun Matrix4f.rotate(angle: Float, vector3f: Vector3f): Matrix4f {
     val r21 = temp.z * axis.y - s * axis.x
     val r22 = c + temp.z * axis.z
 
-    val res = Matrix4f()
+    val res = mat4f(1f)
 
     res.m00 = m00 * r00 + m10 * r01 + m20 * r02
     res.m01 = m01 * r00 + m11 * r01 + m21 * r02
@@ -120,7 +111,7 @@ fun Matrix4f.scale(x: Float, y: Float, z: Float): Matrix4f {
 }
 
 fun Vector4f.castToMat4f(): Matrix4f {
-    val res = Matrix4f()
+    val res = mat4f(1f)
 
     res.m00 = 1f - 2f * ((this.y * this.y) +  (this.z * this.z))
     res.m01 = 2f * ((this.x * this.y) + (this.w * this.z))

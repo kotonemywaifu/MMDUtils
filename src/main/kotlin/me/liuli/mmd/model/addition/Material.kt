@@ -6,25 +6,25 @@ import javax.vecmath.Vector3f
 import javax.vecmath.Vector4f
 
 open class Material {
-    var diffuse = Vector3f()
-    var alpha = 0f
-    var specular = Vector3f()
-    var specularPower = 0f
-    var ambient = Vector3f()
+    var diffuse = Vector3f(1f, 1f, 1f)
+    var alpha = 1f
+    var specular = Vector3f(0f, 0f, 0f)
+    var specularPower = 1f
+    var ambient = Vector3f(0.2f, 0.2f, 0.2f)
     var edgeFlag = false
     var bothFace = false
-    var groundShadow = false
-    var shadowCaster = false
-    var shadowReceiver = false
+    var groundShadow = true
+    var shadowCaster = true
+    var shadowReceiver = true
     var edgeSize = 0f
     var edgeColor = Color.WHITE
     var texture: File? = null
     var spTexture: File? = null
     var toonTexture: File? = null
     var spTextureMode = SphereTextureMode.NONE
-    var textureFactor = Vector4f()
-    var spTextureFactor = Vector4f()
-    var toonTextureFactor = Vector4f()
+    var textureFactor = Vector4f(1f, 1f, 1f, 1f)
+    var spTextureFactor = Vector4f(1f, 1f, 1f, 1f)
+    var toonTextureFactor = Vector4f(1f, 1f, 1f, 1f)
 
     fun clone(): Material {
         val mat = Material()

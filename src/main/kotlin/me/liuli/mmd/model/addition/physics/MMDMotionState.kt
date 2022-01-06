@@ -4,9 +4,9 @@ import com.bulletphysics.linearmath.MotionState
 import com.bulletphysics.linearmath.Transform
 import me.liuli.mmd.model.addition.Node
 import me.liuli.mmd.model.pmx.PmxNode
-import me.liuli.mmd.utils.vector.alignas16mat4
 import me.liuli.mmd.utils.vector.invZ
 import me.liuli.mmd.utils.vector.inverse
+import me.liuli.mmd.utils.vector.mat4f
 import me.liuli.mmd.utils.vector.operator.times
 import javax.vecmath.Matrix4f
 
@@ -33,11 +33,11 @@ class DefaultMotionState(transform: Matrix4f) : MMDMotionState() {
     }
 
     override fun setWorldTransform(worldTrans: Transform) {
-        transform = worldTrans
+        transform.set(worldTrans)
     }
 
     override fun reset() {
-        transform = initialTransform
+        transform.set(initialTransform)
     }
 
     override fun reflectGlobalTransform() {}
@@ -45,7 +45,7 @@ class DefaultMotionState(transform: Matrix4f) : MMDMotionState() {
 
 open class DynamicMotionState(protected val node: Node, protected val offset: Matrix4f, protected val overrideMat: Boolean = true) : MMDMotionState() {
 
-    protected val invOffset = offset.inverse()
+    protected val invOffset = Matrix4f(offset).inverse()
     protected lateinit var transform: Transform
 
     init {
@@ -57,10 +57,10 @@ open class DynamicMotionState(protected val node: Node, protected val offset: Ma
     }
 
     override fun reflectGlobalTransform() {
-        val world = transform.getMatrix(alignas16mat4)
+        val world = transform.getMatrix(mat4f(0f))
         val global = world.invZ() * invOffset
         if(overrideMat) {
-            node.global = global
+            node.global.set(global)
             node.updateChildTransform()
         }
     }
@@ -70,14 +70,14 @@ open class DynamicMotionState(protected val node: Node, protected val offset: Ma
     }
 
     override fun setWorldTransform(worldTrans: Transform) {
-        transform = worldTrans
+        transform.set(worldTrans)
     }
 }
 
 class DynamicAndBoneMergeMotionState(node: Node, offset: Matrix4f, overrideMat: Boolean = true) : DynamicMotionState(node, offset, overrideMat) {
 
     override fun reflectGlobalTransform() {
-        val world = transform.getMatrix(alignas16mat4)
+        val world = transform.getMatrix(mat4f(0f))
         val global = world.invZ() * invOffset
         val nGlobal = node.global
         global.m30 = nGlobal.m30
@@ -85,7 +85,7 @@ class DynamicAndBoneMergeMotionState(node: Node, offset: Matrix4f, overrideMat: 
         global.m32 = nGlobal.m32
         global.m33 = nGlobal.m33
         if(overrideMat) {
-            node.global = global
+            node.global.set(global)
             node.updateChildTransform()
         }
     }
