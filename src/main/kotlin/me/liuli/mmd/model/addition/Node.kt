@@ -1,7 +1,6 @@
 package me.liuli.mmd.model.addition
 
-import me.liuli.mmd.utils.vector.inverse
-import me.liuli.mmd.utils.vector.mat4f
+import me.liuli.mmd.utils.vector.*
 import me.liuli.mmd.utils.vector.operator.plus
 import me.liuli.mmd.utils.vector.operator.times
 import javax.vecmath.Matrix4f
@@ -53,7 +52,7 @@ open class Node {
 
     fun updateGlobalTransform() {
         global.set(if(parent == null) {
-            Matrix4f(local)
+            local
         } else {
             parent!!.global * local
         })
@@ -81,8 +80,18 @@ open class Node {
         scale.set(initScale)
         ikRotate.set(0f, 0f, 0f, 1f)
     }
+
     open fun endUpdateTransform() {}
-    open fun updateLocalTransform() {}
+
+    open fun updateLocalTransform() {
+        val s = mat4f(1f).scale(scale)
+        val r = animateRotate().castToMat4f()
+        val t = mat4f(1f).translate(translate)
+        if(enableIk) {
+            r.mul(ikRotate.castToMat4f())
+        }
+        local.set(t * r * s)
+    }
 
     fun clearBaseAnimation() {
         baseAnimTranslate.set(0f, 0f, 0f)

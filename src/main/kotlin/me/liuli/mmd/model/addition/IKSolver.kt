@@ -3,6 +3,7 @@ package me.liuli.mmd.model.addition
 import me.liuli.mmd.utils.clamp
 import me.liuli.mmd.utils.degrees
 import me.liuli.mmd.utils.vector.inverse
+import me.liuli.mmd.utils.vector.mat4f
 import me.liuli.mmd.utils.vector.operator.minus
 import me.liuli.mmd.utils.vector.operator.times
 import javax.vecmath.Matrix4f
@@ -100,7 +101,7 @@ class IKSolver {
             val rot = Vector4f(cross.x, cross.y, cross.z, angle)
             val chainRot = chainNode.ikRotate * chainNode.animRotate * rot
             if(chain.enableAxisLimit) {
-                val chainRotM = Matrix4f().apply { setRotation(Quat4f(chainRot)) }
+                val chainRotM = mat4f(1f).apply { setRotation(Quat4f(chainRot)) }
 //                TODO("Decompose")
             }
         }

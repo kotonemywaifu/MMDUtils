@@ -3,7 +3,9 @@ package me.liuli.mmd.opengl
 import me.liuli.mmd.model.Model
 import me.liuli.mmd.opengl.texture.ITextureLoader
 import me.liuli.mmd.renderer.Renderer
+import org.lwjgl.opengl.GL
 import org.lwjgl.opengl.GL11
+import org.lwjgl.opengl.GL13
 import java.awt.Color
 import java.io.File
 

@@ -95,7 +95,7 @@ private fun loop() {
         glScalef(0.1f, 0.15f, 0.15f)
         glTranslatef(0f, -8f, 0f)
         // rotate the polygon
-        glRotatef(glfwGetTime().toFloat() * 25, 0f, 1f, 0f)
+//        glRotatef(glfwGetTime().toFloat() * 25, 0f, 1f, 0f)
 
         thread.join()
 

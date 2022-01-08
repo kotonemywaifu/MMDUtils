@@ -130,11 +130,11 @@ class PmxModel(val file: PmxFile) : Model() {
         var beginIndex = 0
         for (material in file.materials) {
             val mat = Material()
-            mat.diffuse = Vector3f(material.diffuse.x, material.diffuse.y, material.diffuse.z)
+            mat.diffuse.set(material.diffuse.x, material.diffuse.y, material.diffuse.z)
             mat.alpha = material.diffuse.w
             mat.specularPower = material.specularlity
-            mat.specular = Vector3f(material.specular)
-            mat.ambient = Vector3f(material.ambient)
+            mat.specular.set(material.specular)
+            mat.ambient.set(material.ambient)
             mat.bothFace = material.flag and PmxDrawMode.BOTH_FACE.value != 0
             mat.edgeFlag = material.flag and PmxDrawMode.DRAW_EDGE.value != 0
             mat.groundShadow = material.flag and PmxDrawMode.GROUND_SHADOW.value != 0
@@ -204,33 +204,33 @@ class PmxModel(val file: PmxFile) : Model() {
         sortedNodes = this.nodes.sortedBy { it.deformDepth } as MutableList<PmxNode>
 
         // IK
-        file.bones.forEachIndexed { index, bone ->
-            if (bone.flag and PmxBoneFlags.IK.flag != zeroShort) {
-                val solver = IKSolver()
-                val node = this.nodes[index]
-                solver.node = node
-                node.solver = solver
-                solver.target = this.nodes[bone.ikTargetBoneIndex]
-
-                for(ikLink in bone.ikLinks) {
-                    val linkNode = this.nodes[ikLink.linkTarget]
-                    val chain = IKSolver.IKChain()
-                    chain.node = linkNode
-                    if(ikLink.angleLock == 0) {
-                        chain.enableAxisLimit = false
-                    } else {
-                        chain.enableAxisLimit = true
-                        ikLink.minRadian.set(chain.limitMin)
-                        ikLink.maxRadian.set(chain.limitMax)
-                    }
-                    solver.chains.add(chain)
-                    linkNode.enableIk = true
-                }
-                solver.iterateCount = bone.ikLoop
-                solver.limitAngle = bone.ikLoopAngleLimit
-                ikSolvers.add(solver)
-            }
-        }
+//        file.bones.forEachIndexed { index, bone ->
+//            if (bone.flag and PmxBoneFlags.IK.flag != zeroShort) {
+//                val solver = IKSolver()
+//                val node = this.nodes[index]
+//                solver.node = node
+//                node.solver = solver
+//                solver.target = this.nodes[bone.ikTargetBoneIndex]
+//
+//                for(ikLink in bone.ikLinks) {
+//                    val linkNode = this.nodes[ikLink.linkTarget]
+//                    val chain = IKSolver.IKChain()
+//                    chain.node = linkNode
+//                    if(ikLink.angleLock == 0) {
+//                        chain.enableAxisLimit = false
+//                    } else {
+//                        chain.enableAxisLimit = true
+//                        ikLink.minRadian.set(chain.limitMin)
+//                        ikLink.maxRadian.set(chain.limitMax)
+//                    }
+//                    solver.chains.add(chain)
+//                    linkNode.enableIk = true
+//                }
+//                solver.iterateCount = bone.ikLoop
+//                solver.limitAngle = bone.ikLoopAngleLimit
+//                ikSolvers.add(solver)
+//            }
+//        }
 
         // morph
         for (pmxMorph in file.morphs) {
@@ -365,11 +365,10 @@ class PmxModel(val file: PmxFile) : Model() {
             rbInfo.additionalDamping = true
 
             val btRigidBody = RigidBody(rbInfo)
-            btRigidBody.userPointer = physicsManager
             btRigidBody.setSleepingThresholds(0.1f, Math.toRadians(0.1).toFloat())
             btRigidBody.activationState = RigidBody.DISABLE_DEACTIVATION
-            if(pmxRigidBody.op == PmxFile.RigidBody.Operation.DYNAMIC) {
-                btRigidBody.collisionFlags = btRigidBody.collisionFlags or CollisionFlags.KINEMATIC_OBJECT
+            if(pmxRigidBody.op == PmxFile.RigidBody.Operation.STATIC) {
+                btRigidBody.collisionFlags = CollisionFlags.KINEMATIC_OBJECT
             }
             physicsManager.addRigidBody(MMDRigidBody(btRigidBody, activeMotionState, kinematicMotionState,
                 MMDRigidBody.Type.values()[pmxRigidBody.op.code],

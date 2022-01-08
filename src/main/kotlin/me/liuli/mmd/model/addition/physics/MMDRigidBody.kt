@@ -39,7 +39,6 @@ class MMDRigidBody(val btRigidBody: RigidBody,
     fun calcLocalTransform() {
         if(node != null) {
             if(node.parent != null) {
-                // the physics bug disappear after comment the line below
                 node.local.set(Matrix4f(node.parent!!.global).inverse() * node.global)
             } else {
                 node.local.set(node.global)
