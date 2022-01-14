@@ -454,7 +454,7 @@ object PmxParser : Parser<PmxFile> {
         val bos = ByteArrayOutputStream()
 
         // header
-        bos.writeLimited("PMX ".toStandardByteArray(), 4)
+        bos.writeLimited("PMX ".toByteArray(Charsets.UTF_8), 4)
         bos.writeFloat(if(file.softBodies.isEmpty()) { 2.0f } else { 2.1f })
 
         // settings

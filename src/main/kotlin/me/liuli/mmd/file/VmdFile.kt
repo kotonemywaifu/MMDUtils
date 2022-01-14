@@ -26,7 +26,7 @@ class VmdFile : InteractiveFile() {
         // 旋转 (回転)
         val orientation = Vector4f()
         // 插值曲线 (補間曲線)
-        var interpolation = ByteArray(4 * 4 * 4)
+        var interpolation = IntArray(64)
     }
 
     class FaceFrame {
@@ -48,11 +48,10 @@ class VmdFile : InteractiveFile() {
         // 旋转 (回転)
         val orientation = Vector3f()
         // 插值曲线 (補間曲線)
-        var interpolation = ByteArray(6 * 4)
+        var interpolation = IntArray(24)
         // 可视角度 (視野角)
-        var angle = 0f
-        // unknown
-        var unknown = ByteArray(3)
+        var angle = 0
+        var isPerspective = 0
     }
 
     class LightFrame {

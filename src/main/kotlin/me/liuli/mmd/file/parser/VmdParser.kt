@@ -16,7 +16,7 @@ object VmdParser : Parser<VmdFile> {
         }
 
         // name of the motion data
-        file.name = iterator.readString(20)
+        file.name = iterator.readSJISString(20)
 
         // bone frame count
         val boneFrameNum = iterator.readInt()
@@ -61,11 +61,11 @@ object VmdParser : Parser<VmdFile> {
     private fun readBoneFrame(iterator: ByteIterator): VmdFile.BoneFrame {
         val boneFrame = VmdFile.BoneFrame()
 
-        boneFrame.name = iterator.readString(15)
+        boneFrame.name = iterator.readSJISString(15)
         boneFrame.frame = iterator.readInt()
         iterator.readVector3f(boneFrame.position)
         iterator.readVector4f(boneFrame.orientation)
-        iterator.read(boneFrame.interpolation, 0, 4 * 4 * 4)
+        iterator.readUInt8Array(boneFrame.interpolation)
 
         return boneFrame
     }
@@ -73,7 +73,7 @@ object VmdParser : Parser<VmdFile> {
     private fun readFaceFrame(iterator: ByteIterator): VmdFile.FaceFrame {
         val faceFrame = VmdFile.FaceFrame()
 
-        faceFrame.name = iterator.readString(15)
+        faceFrame.name = iterator.readSJISString(15)
         faceFrame.frame = iterator.readInt()
         faceFrame.weight = iterator.readFloat()
 
@@ -87,9 +87,9 @@ object VmdParser : Parser<VmdFile> {
         cameraFrame.distance = iterator.readFloat()
         iterator.readVector3f(cameraFrame.position)
         iterator.readVector3f(cameraFrame.orientation)
-        iterator.read(cameraFrame.interpolation, 0, 24)
-        cameraFrame.angle = iterator.readFloat()
-        iterator.read(cameraFrame.unknown, 0, 3)
+        iterator.readUInt8Array(cameraFrame.interpolation)
+        cameraFrame.angle = iterator.readInt()
+        cameraFrame.isPerspective = iterator.next().toInt()
 
         return cameraFrame
     }
@@ -114,7 +114,7 @@ object VmdParser : Parser<VmdFile> {
         for (i in 0 until ikSubValueNum) {
             val ik = VmdFile.IkFrame.Ik()
 
-            ik.name = iterator.readString(20)
+            ik.name = iterator.readSJISString(20)
             ik.enable = iterator.readBool()
 
             ikFrame.iks.add(ik)
@@ -127,10 +127,10 @@ object VmdParser : Parser<VmdFile> {
         val bos = ByteArrayOutputStream()
 
         // header
-        bos.writeLimited("Vocaloid Motion Data 0002".toStandardByteArray(),  30)
+        bos.writeLimited("Vocaloid Motion Data 0002".toByteArray(Charsets.SHIFT_JIS),  30)
 
         // model name
-        bos.writeLimited(data.name.toStandardByteArray(), 20)
+        bos.writeLimited(data.name.toByteArray(Charsets.SHIFT_JIS), 20)
 
         // bone frames
         bos.writeInt(data.boneFrames.size)
@@ -169,15 +169,15 @@ object VmdParser : Parser<VmdFile> {
     }
 
     private fun writeBoneFrame(bos: ByteArrayOutputStream, boneFrame: VmdFile.BoneFrame) {
-        bos.writeLimited(boneFrame.name.toStandardByteArray(), 15)
+        bos.writeLimited(boneFrame.name.toByteArray(Charsets.SHIFT_JIS), 15)
         bos.writeInt(boneFrame.frame)
         bos.writeVector3f(boneFrame.position)
         bos.writeVector4f(boneFrame.orientation)
-        bos.write(boneFrame.interpolation)
+        bos.writeUInt8Array(boneFrame.interpolation)
     }
 
     private fun writeFaceFrame(bos: ByteArrayOutputStream, faceFrame: VmdFile.FaceFrame) {
-        bos.writeLimited(faceFrame.name.toStandardByteArray(), 15)
+        bos.writeLimited(faceFrame.name.toByteArray(Charsets.SHIFT_JIS), 15)
         bos.writeInt(faceFrame.frame)
         bos.writeFloat(faceFrame.weight)
     }
@@ -187,9 +187,9 @@ object VmdParser : Parser<VmdFile> {
         bos.writeFloat(cameraFrame.distance)
         bos.writeVector3f(cameraFrame.position)
         bos.writeVector3f(cameraFrame.orientation)
-        bos.write(cameraFrame.interpolation)
-        bos.writeFloat(cameraFrame.angle)
-        bos.write(cameraFrame.unknown)
+        bos.writeUInt8Array(cameraFrame.interpolation)
+        bos.writeInt(cameraFrame.angle)
+        bos.write(cameraFrame.isPerspective.toByte())
     }
 
     private fun writeLightFrame(bos: ByteArrayOutputStream, lightFrame: VmdFile.LightFrame) {
@@ -203,7 +203,7 @@ object VmdParser : Parser<VmdFile> {
         bos.writeBool(ikFrame.display)
         bos.writeInt(ikFrame.iks.size)
         for (ik in ikFrame.iks) {
-            bos.writeLimited(ik.name.toStandardByteArray(), 20)
+            bos.writeLimited(ik.name.toByteArray(Charsets.SHIFT_JIS), 20)
             bos.writeBool(ik.enable)
         }
     }
@@ -211,4 +211,24 @@ object VmdParser : Parser<VmdFile> {
     override fun read(input: ByteArray): VmdFile {
         return VmdFile().also { readToInstance(it, input) }
     }
+
+    /**
+     * read shift-jis string from [ByteIterator]
+     */
+    private fun ByteIterator.readSJISString(length: Int): String {
+        return readUntilZero(length).toString(Charsets.SHIFT_JIS)
+    }
+
+    private fun ByteIterator.readUInt8Array(array: IntArray) {
+        for (i in array.indices) {
+            array[i] = next().toInt()
+        }
+    }
+
+    private fun ByteArrayOutputStream.writeUInt8Array(array: IntArray) {
+        for (i in array.indices) {
+            write(array[i].toByte())
+        }
+    }
+
 }

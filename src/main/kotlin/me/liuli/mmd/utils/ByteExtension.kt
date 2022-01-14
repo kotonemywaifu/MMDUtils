@@ -3,8 +3,13 @@ package me.liuli.mmd.utils
 import java.awt.Color
 import java.io.ByteArrayOutputStream
 import java.nio.ByteBuffer
+import java.nio.charset.Charset
+import java.nio.charset.StandardCharsets
 import javax.vecmath.Vector3f
 import javax.vecmath.Vector4f
+
+val Charsets.SHIFT_JIS: Charset
+    get() = Charset.forName("Shift_JIS")
 
 /**
  * read a length of bytes from [ByteIterator]
@@ -21,16 +26,21 @@ fun ByteIterator.read(length: Int): ByteArray {
 }
 
 /**
- * read a length of bytes from [ByteIterator] to a given [ByteArray]
+ * read a length of bytes from [ByteIterator] but stop at 0x00
  */
-fun ByteIterator.read(bytes: ByteArray, offset: Int, length: Int): ByteArray {
+fun ByteIterator.readUntilZero(length: Int): ByteArray {
+    val bytes = ByteArrayOutputStream()
+    var readFlag = true
     for (i in 0 until length) {
-        bytes[offset + i] = this.next()
-        if (!this.hasNext()) {
-            break
+        val b = this.next()
+        if (b == 0x00.toByte()) {
+            readFlag = false
+        }
+        if(readFlag) {
+            bytes.write(b)
         }
     }
-    return bytes
+    return bytes.toByteArray()
 }
 
 /**
@@ -191,6 +201,9 @@ fun ByteArrayOutputStream.writeBool(value: Boolean) {
  * write bytes to [ByteArrayOutputStream]
  */
 fun ByteArrayOutputStream.writeLimited(value: ByteArray, size: Int) {
+    if(value.size > size) {
+        println("value size is bigger than size")
+    }
     if(value.size < size) {
         this.write(value)
         for (i in 0 until size - value.size) {
@@ -201,17 +214,6 @@ fun ByteArrayOutputStream.writeLimited(value: ByteArray, size: Int) {
     } else {
         this.write(value)
     }
-}
-
-/**
- * write string to [ByteArray] without any encoding
- */
-fun String.toStandardByteArray(): ByteArray {
-    val bos = ByteArrayOutputStream()
-    for (c in this) {
-        bos.write(byteArrayOf(c.code.toByte()))
-    }
-    return bos.toByteArray()
 }
 
 /**
