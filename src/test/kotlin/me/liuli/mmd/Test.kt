@@ -4,23 +4,12 @@ import me.liuli.mmd.file.PmxFile
 import me.liuli.mmd.file.VmdFile
 import me.liuli.mmd.file.parser.PmxParser
 import me.liuli.mmd.file.parser.VmdParser
-import me.liuli.mmd.model.pmx.PmxModel
-import me.liuli.mmd.utils.vector.inverse
-import me.liuli.mmd.utils.vector.mat4f
-import me.liuli.mmd.utils.vector.operator.times
-import me.liuli.mmd.utils.vector.translate
 import java.io.File
-import javax.vecmath.Matrix4f
-import kotlin.math.abs
 
 fun main(args: Array<String>) {
-    testVmd()
+//    testVmd()
 //    testPmx()
 //    testVpd()
-}
-
-private fun ille(float: Float, r: Float): Boolean {
-    return abs(float) > r
 }
 
 private fun testVmd() {

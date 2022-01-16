@@ -10,7 +10,6 @@ import com.bulletphysics.dynamics.DiscreteDynamicsWorld
 import com.bulletphysics.dynamics.RigidBody
 import com.bulletphysics.dynamics.RigidBodyConstructionInfo
 import com.bulletphysics.dynamics.constraintsolver.SequentialImpulseConstraintSolver
-import com.bulletphysics.dynamics.constraintsolver.TypedConstraint
 import com.bulletphysics.linearmath.DefaultMotionState
 import com.bulletphysics.linearmath.Transform
 import javax.vecmath.Vector3f

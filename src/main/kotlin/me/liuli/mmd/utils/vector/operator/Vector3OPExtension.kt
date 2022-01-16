@@ -65,3 +65,21 @@ operator fun Vector3f.minus(value: Float): Vector3f {
     vec.z = z - value
     return vec
 }
+
+operator fun Vector3f.get(index: Int): Float {
+    return when (index) {
+        0 -> x
+        1 -> y
+        2 -> z
+        else -> throw IllegalArgumentException("index must be 0, 1 or 2")
+    }
+}
+
+operator fun Vector3f.set(index: Int, value: Float) {
+    when (index) {
+        0 -> x = value
+        1 -> y = value
+        2 -> z = value
+        else -> throw IllegalArgumentException("index must be 0, 1 or 2")
+    }
+}

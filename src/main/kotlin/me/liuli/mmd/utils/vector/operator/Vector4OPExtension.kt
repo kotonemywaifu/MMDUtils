@@ -72,3 +72,23 @@ operator fun Vector4f.div(value: Float): Vector4f {
     vec.w = w / value
     return vec
 }
+
+operator fun Vector4f.get(index: Int): Float {
+    return when (index) {
+        0 -> x
+        1 -> y
+        2 -> z
+        3 -> w
+        else -> throw IndexOutOfBoundsException("index must be in 0..3")
+    }
+}
+
+operator fun Vector4f.set(index: Int, value: Float) {
+    when (index) {
+        0 -> x = value
+        1 -> y = value
+        2 -> z = value
+        3 -> w = value
+        else -> throw IndexOutOfBoundsException("index must be in 0..3")
+    }
+}

@@ -2,8 +2,8 @@ package me.liuli.mmd.model.pmx
 
 import me.liuli.mmd.file.PmxFile
 import me.liuli.mmd.model.addition.Morph
+import me.liuli.mmd.utils.vector.instance.Quat
 import javax.vecmath.Vector3f
-import javax.vecmath.Vector4f
 
 class PmxMorph : Morph() {
     var type = MorphType.NONE
@@ -44,7 +44,7 @@ class PmxMorph : Morph() {
         class BoneMorph {
             lateinit var node: PmxNode
             val position = Vector3f()
-            val rotation = Vector4f()
+            val rotation = Quat()
         }
     }
 

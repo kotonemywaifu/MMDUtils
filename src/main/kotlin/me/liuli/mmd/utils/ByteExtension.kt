@@ -4,7 +4,6 @@ import java.awt.Color
 import java.io.ByteArrayOutputStream
 import java.nio.ByteBuffer
 import java.nio.charset.Charset
-import java.nio.charset.StandardCharsets
 import javax.vecmath.Vector3f
 import javax.vecmath.Vector4f
 

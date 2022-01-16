@@ -3,7 +3,6 @@ package me.liuli.mmd.utils.vector
 import me.liuli.mmd.utils.vector.operator.times
 import javax.vecmath.Matrix4f
 import javax.vecmath.Vector3f
-import javax.vecmath.Vector4f
 import kotlin.math.cos
 import kotlin.math.sin
 
@@ -108,24 +107,6 @@ fun Matrix4f.scale(x: Float, y: Float, z: Float): Matrix4f {
     m22 *= z
     m23 *= z
     return this
-}
-
-fun Vector4f.castToMat4f(): Matrix4f {
-    val res = mat4f(1f)
-
-    res.m00 = 1f - 2f * ((this.y * this.y) +  (this.z * this.z))
-    res.m01 = 2f * ((this.x * this.y) + (this.w * this.z))
-    res.m02 = 2f * ((this.x * this.z) - (this.w * this.y))
-
-    res.m10 = 2f * ((this.x * this.y) - (this.w * this.z))
-    res.m11 = 1f - 2f * ((this.x * this.x) +  (this.z * this.z))
-    res.m12 = 2f * ((this.y * this.z) + (this.w * this.x))
-
-    res.m20 = 2f * ((this.x * this.z) + (this.w * this.y))
-    res.m21 = 2f * ((this.y * this.z) - (this.w * this.x))
-    res.m22 = 1f - 2f * ((this.x * this.x) +  (this.y * this.y))
-
-    return res
 }
 
 fun Matrix4f.invZ(): Matrix4f {

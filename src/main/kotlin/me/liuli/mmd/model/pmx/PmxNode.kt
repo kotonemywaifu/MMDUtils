@@ -3,11 +3,13 @@ package me.liuli.mmd.model.pmx
 import me.liuli.mmd.model.addition.IKSolver
 import me.liuli.mmd.model.addition.Node
 import me.liuli.mmd.utils.slerp
-import me.liuli.mmd.utils.vector.*
+import me.liuli.mmd.utils.vector.instance.Quat
+import me.liuli.mmd.utils.vector.mat4f
 import me.liuli.mmd.utils.vector.operator.times
-import java.lang.Exception
+import me.liuli.mmd.utils.vector.scale
+import me.liuli.mmd.utils.vector.translate
+import me.liuli.mmd.utils.vector.vec3f
 import javax.vecmath.Vector3f
-import javax.vecmath.Vector4f
 
 class PmxNode : Node() {
     var deformDepth = 0
@@ -15,7 +17,7 @@ class PmxNode : Node() {
     var isAppendRotate = false
     var isAppendTranslate = false
     val appendTranslate = Vector3f(0f, 0f, 0f)
-    val appendRotate = Vector4f(0f, 0f, 0f, 1f)
+    val appendRotate = Quat(1f, 0f, 0f, 0f)
     var appendNode: PmxNode? = null
     var isAppendLocal = false
     var appendWeight = 0f
@@ -60,7 +62,7 @@ class PmxNode : Node() {
             if(appendNode!!.enableIk) {
                 appendRotate = appendNode!!.ikRotate * appendRotate
             }
-            this.appendRotate.set(slerp(Vector4f(0f, 0f, 0f, 1f), appendRotate, appendWeight))
+            this.appendRotate.set(slerp(Quat(1f, 0f, 0f, 0f), appendRotate, appendWeight))
         }
 
         if(isAppendTranslate) {

@@ -78,6 +78,9 @@ class PmxModel(val file: PmxFile) : Model() {
                 sbi.r0.x = (sbi.c.x + r0.x) * 0.5f
                 sbi.r0.y = (sbi.c.y + r0.y) * 0.5f
                 sbi.r0.z = (sbi.c.z + r0.z) * 0.5f
+                sbi.r1.x = (sbi.c.x + r1.x) * 0.5f
+                sbi.r1.y = (sbi.c.y + r1.y) * 0.5f
+                sbi.r1.z = (sbi.c.z + r1.z) * 0.5f // FIXME: maybe wrong
 
                 sbi
             } else {
@@ -204,33 +207,33 @@ class PmxModel(val file: PmxFile) : Model() {
         sortedNodes = this.nodes.sortedBy { it.deformDepth } as MutableList<PmxNode>
 
         // IK
-//        file.bones.forEachIndexed { index, bone ->
-//            if (bone.flag and PmxBoneFlags.IK.flag != zeroShort) {
-//                val solver = IKSolver()
-//                val node = this.nodes[index]
-//                solver.node = node
-//                node.solver = solver
-//                solver.target = this.nodes[bone.ikTargetBoneIndex]
-//
-//                for(ikLink in bone.ikLinks) {
-//                    val linkNode = this.nodes[ikLink.linkTarget]
-//                    val chain = IKSolver.IKChain()
-//                    chain.node = linkNode
-//                    if(ikLink.angleLock == 0) {
-//                        chain.enableAxisLimit = false
-//                    } else {
-//                        chain.enableAxisLimit = true
-//                        ikLink.minRadian.set(chain.limitMin)
-//                        ikLink.maxRadian.set(chain.limitMax)
-//                    }
-//                    solver.chains.add(chain)
-//                    linkNode.enableIk = true
-//                }
-//                solver.iterateCount = bone.ikLoop
-//                solver.limitAngle = bone.ikLoopAngleLimit
-//                ikSolvers.add(solver)
-//            }
-//        }
+        file.bones.forEachIndexed { index, bone ->
+            if (bone.flag and PmxBoneFlags.IK.flag != zeroShort) {
+                val solver = IKSolver()
+                val node = this.nodes[index]
+                solver.node = node
+                node.solver = solver
+                solver.target = this.nodes[bone.ikTargetBoneIndex]
+
+                for(ikLink in bone.ikLinks) {
+                    val linkNode = this.nodes[ikLink.linkTarget]
+                    val chain = IKSolver.IKChain()
+                    chain.node = linkNode
+                    if(ikLink.angleLock == 0) {
+                        chain.enableAxisLimit = false
+                    } else {
+                        chain.enableAxisLimit = true
+                        ikLink.minRadian.set(chain.limitMin)
+                        ikLink.maxRadian.set(chain.limitMax)
+                    }
+                    solver.chains.add(chain)
+                    linkNode.enableIk = true
+                }
+                solver.iterateCount = bone.ikLoop
+                solver.limitAngle = bone.ikLoopAngleLimit
+                ikSolvers.add(solver)
+            }
+        }
 
         // morph
         for (pmxMorph in file.morphs) {

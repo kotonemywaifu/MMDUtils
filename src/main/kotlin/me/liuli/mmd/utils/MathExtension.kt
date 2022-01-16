@@ -1,16 +1,16 @@
 package me.liuli.mmd.utils
 
+import me.liuli.mmd.utils.vector.instance.Quat
 import javax.vecmath.Matrix3f
 import javax.vecmath.Vector3f
 import javax.vecmath.Vector4f
-import kotlin.math.cos
-import kotlin.math.sin
+import kotlin.math.*
 
 /**
  * slerp in glm
  */
-fun slerp(a: Vector4f, b: Vector4f, t: Float): Vector4f {
-    val res = Vector4f()
+fun slerp(a: Quat, b: Quat, t: Float): Quat {
+    val res = Quat()
     val omega: Float
     val sinom: Float
     val sclp: Float
@@ -18,10 +18,10 @@ fun slerp(a: Vector4f, b: Vector4f, t: Float): Vector4f {
     val cosom = a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w
     if (1.0f + cosom > Math.E) {
         if (1.0f - cosom > Math.E) {
-            omega = Math.acos(cosom.toDouble()).toFloat()
-            sinom = Math.sin(omega.toDouble()).toFloat()
-            sclp = Math.sin(((1.0f - t) * omega).toDouble()).toFloat() / sinom
-            sclq = Math.sin((t * omega).toDouble()).toFloat() / sinom
+            omega = acos(cosom.toDouble()).toFloat()
+            sinom = sin(omega.toDouble()).toFloat()
+            sclp = sin(((1.0f - t) * omega).toDouble()).toFloat() / sinom
+            sclq = sin((t * omega).toDouble()).toFloat() / sinom
         } else {
             sclp = 1.0f - t
             sclq = t
@@ -61,6 +61,14 @@ fun clamp(num: Int, min: Int, max: Int): Int {
     return if (num < min) min else if (num > max) max else num
 }
 
+fun clamp(vector3f: Vector3f, min: Float, max: Float): Vector3f {
+    return Vector3f(clamp(vector3f.x, min, max), clamp(vector3f.y, min, max), clamp(vector3f.z, min, max))
+}
+
+fun clamp(vector3f: Vector3f, min: Vector3f, max: Vector3f): Vector3f {
+    return Vector3f(clamp(vector3f.x, min.x, max.x), clamp(vector3f.y, min.y, max.y), clamp(vector3f.z, min.z, max.z))
+}
+
 fun degrees(radians: Float): Float {
     return radians * 180.0f / Math.PI.toFloat()
 }
@@ -86,4 +94,88 @@ fun setEulerZYX(x: Float, y: Float, z: Float): Matrix3f {
     return Matrix3f(cj * ch, sj * sc - cs, sj * cc + ss,
         cj * sh, sj * ss + cc, sj * cs - sc,
         -sj, cj * si, cj * ci)
+}
+
+fun decompose(m: Matrix3f, before: Vector3f): Vector3f {
+    val r = Vector3f()
+    val sy = -m.m02
+    val e = 1.0e-6f
+    val pi = Math.PI.toFloat()
+    if((1 - abs(sy)) < e) {
+        r.y = asin(sy)
+        // 找到更接近180度的值
+        val sx = sin(before.x)
+        val sz = sin(before.z)
+        if(abs(sx) < abs(sz)) {
+            // X为0或180
+            val cx = cos(before.x)
+            if(cx > 0) {
+                r.x = 0f
+                r.z = asin(-m.m10)
+            } else {
+                r.x = pi
+                r.z = asin(m.m10)
+            }
+        } else {
+            val cz = cos(before.z)
+            if (cz > 0) {
+                r.x = asin(-m.m21)
+                r.z = 0f
+            } else {
+                r.x = asin(m.m21)
+                r.z = pi
+            }
+        }
+    } else {
+        r.x = atan2(m.m12, m.m22)
+        r.y = asin(-m.m02)
+        r.z = atan2(m.m01, m.m00)
+    }
+
+    val tests = arrayOf(Vector3f(r.x + pi, pi - r.y, r.z + pi),
+        Vector3f(r.x + pi, pi - r.y, r.z - pi),
+        Vector3f(r.x + pi, -pi - r.y, r.z + pi),
+        Vector3f(r.x + pi, -pi - r.y, r.z - pi),
+        Vector3f(r.x - pi, pi - r.y, r.z + pi),
+        Vector3f(r.x - pi, pi - r.y, r.z - pi),
+        Vector3f(r.x - pi, -pi - r.y, r.z + pi),
+        Vector3f(r.x - pi, -pi - r.y, r.z - pi))
+
+    val errX = abs(diffAngle(r.x, before.x))
+    val errY = abs(diffAngle(r.y, r.y))
+    val errZ = abs(diffAngle(r.z, r.z))
+    var minErr = errX + errY + errZ
+    for(test in tests) {
+        val err = abs(diffAngle(test.x, before.x)) +
+                abs(diffAngle(test.y, before.y)) +
+                abs(diffAngle(test.z, before.z))
+        if(err < minErr) {
+            minErr = err
+            r.set(test)
+        }
+    }
+    return r
+}
+
+fun normalizeAngle(angle: Float): Float {
+    val twoPi = Math.PI.toFloat() * 2
+
+    return if(angle > twoPi) {
+        angle % twoPi
+    } else if (angle < twoPi) {
+        twoPi - (angle % twoPi)
+    } else {
+        angle
+    }
+}
+
+fun diffAngle(a: Float, b: Float): Float {
+    val diff = normalizeAngle(a) - normalizeAngle(b)
+    return if(diff > Math.PI.toFloat()) {
+        diff - (Math.PI.toFloat() * 2)
+    } else if (diff < -Math.PI.toFloat()) {
+        diff + (Math.PI.toFloat() * 2)
+    } else {
+        diff
+    }
 }
